@@ -26,7 +26,7 @@ async function main() {
   });
   console.log('Upserted home_media setting.');
 
-  // 2. Seed HERO slides
+  // 2. Seed HERO slides (two desk view videos + matching mobile videos)
   const heroSlides = [
     {
       id: 'hero-1',
@@ -52,19 +52,16 @@ async function main() {
       sortOrder: 1,
       published: true,
     },
-    {
-      id: 'hero-3',
-      slug: 'precision-power-protection',
-      title: 'Precision power. Uncompromising care.',
-      excerpt: 'High-RPM stability and maximum engine life across Nepal’s roads and mountain terrain.',
-      image: '/images/hero desk 3.jpg',
-      mobileImage: '/images/hero mob img 1.jpg',
-      videoUrl: '/video/hero desk 1.mp4',
-      link: '/products',
-      sortOrder: 2,
-      published: true,
-    },
   ];
+
+  // Remove any obsolete hero slides not in heroSlides list
+  await db.content.deleteMany({
+    where: {
+      type: 'HERO',
+      id: { notIn: heroSlides.map(s => s.id) },
+    },
+  });
+  console.log('Cleaned up obsolete hero slides.');
 
   for (const slide of heroSlides) {
     await db.content.upsert({

@@ -12,7 +12,7 @@ export async function getProductBySlug(slug: string) { return (await getProducts
 export const getContent = unstable_cache(async (type?: ContentType) => {
   if (!hasDatabase()) return fallbackContent.filter(item => !type || item.type === type);
   return db.content.findMany({ where: { published: true, ...(type ? { type } : {}) }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }] });
-}, ['content-whatsapp-20260909'], { revalidate: 120, tags: ['content'] });
+}, ['content-hero-v3'], { revalidate: 120, tags: ['content'] });
 export const getSettings = unstable_cache(async () => {
   if (!hasDatabase()) return defaultSettings;
   const record = await db.setting.findUnique({ where: { key: 'site' } });

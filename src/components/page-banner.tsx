@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export function PageBanner({title,description,eyebrow='THE WORLD OF ALPHA'}:{title:string;description?:string;eyebrow?:string}){return <section className="page-banner"><div className="wrap"><div className="breadcrumb"><Link href="/">Home</Link><span>/</span><span>{title}</span></div><p className="eyebrow light">{eyebrow}</p><h1>{title}</h1>{description&&<p>{description}</p>}</div></section>}

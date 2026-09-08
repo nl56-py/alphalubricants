@@ -1,0 +1,1 @@
+ALTER TABLE `Content` ADD COLUMN `videoUrl` VARCHAR(1024) NULL;

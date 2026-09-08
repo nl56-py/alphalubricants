@@ -1,0 +1,7 @@
+import type {Metadata} from 'next';
+import Image from 'next/image';
+import Link from 'next/link';
+import {PageBanner} from '@/components/page-banner';
+import {Heritage} from '@/components/home';
+export const metadata:Metadata={title:'About Alpha Lubricants Nepal',description:'Meet Alpha Lubricants, the Kathmandu-based brand driven by motorcycle performance, engine care and Nepal’s riding community.',alternates:{canonical:'/about'}};
+export default function About(){return <main id="main-content"><PageBanner title="Your journey drives us." description="Performance. Protection. Power. That’s the Alpha spirit."/><section className="intro wrap"><h2>A passion for engines.<br/><span>A connection to Nepal.</span></h2><div><p>Based in Tinkune, Kathmandu, Alpha Lubricants brings engine oil and a shared passion for riding to Nepal’s motorcycle community.</p><p>We believe that caring for your engine starts with understanding what it needs. Our range includes Alpha SL and semi synthetic engine oils in practical pack sizes, with local support to help you make an informed choice.</p><p>Whether you ride to work or for the love of the road, we’re here for your next journey.</p><Link className="outline-button" href="/products">Explore our products</Link></div></section><div style={{position:'relative',height:450}}><Image src="/images/alpha-racing.webp" alt="Motorcycle journey through Himalayan foothills" fill sizes="100vw" style={{objectFit:'cover'}}/></div><Heritage/></main>}

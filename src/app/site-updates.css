@@ -1,0 +1,66 @@
+/* Uploaded media is contained, never cropped or stretched. */
+.hero-ambient{display:none}
+.hero .hero-photo,.hero .hero-video{object-fit:contain;object-position:center;max-width:100%;height:100%!important;background:#151515}
+.hero{background:#151515}
+body{font-size:18px}
+.intro p:not(.eyebrow),.performance-copy p,.partnership-copy p,.heritage p:not(.eyebrow),.news-grid p:not(.eyebrow),.center-heading p,.faq-section details p,.footer-brand p,.footer-grid p{font-size:18px;line-height:1.8}
+.eyebrow,.section-heading .eyebrow{font-size:12px}
+.button,.outline-button,.text-link{font-size:16px;min-height:48px}
+.hero-description{font-size:19px;max-width:520px}
+.hero-content .eyebrow{font-size:12px}
+.hero h1{font-size:clamp(44px,4.6vw,72px)}
+.intro h2,.home-products h2,.center-heading h2{font-size:46px}
+.faq-section summary{font-size:18px}
+.shop-product-description,.shop-product-info p,.shop-product-meta{font-size:16px}
+.utility{font-size:12px}
+.main-nav{gap:16px}.main-nav>a{font-size:15px}
+.nav-row{gap:16px;padding-inline:25px}.brand,.brand img{width:175px}
+.main-nav .dealership-nav{background:var(--wine);color:white;padding:11px 15px;border-radius:28px;text-align:center}
+.country{display:none}
+.footer-grid>div>a:not(:first-child){font-size:16px}
+.dash-field,.dash-field input,.dash-field textarea,.dash-field select{font-size:16px}
+.dash-nav-link{font-size:15px}
+.dash-tabs{flex-wrap:wrap;gap:8px}
+.shop-buy-button{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;margin-top:18px;min-height:48px;border-radius:28px;background:var(--wine);color:white;font-weight:600;font-size:16px}
+.shop-buy-button:hover{background:var(--deep)}
+.oil-finder-callout{background:#f5ecee;padding:55px 0}
+.oil-finder-callout .wrap{display:flex;align-items:center;justify-content:space-between;gap:35px}
+.oil-finder-callout h2{margin-bottom:12px}.oil-finder-callout p{margin-bottom:0;max-width:700px}
+@media(max-width:1250px){
+ .mobile-toggle{display:inline-flex}.main-nav{display:none}.nav-row{padding-bottom:0;height:80px}
+ .main-nav.is-open{display:flex;position:absolute;top:109px;left:0;right:0;flex-direction:column;align-items:stretch;background:white;padding:20px 28px;gap:0;border-bottom:1px solid var(--line);max-height:calc(100svh - 109px);overflow-y:auto;box-shadow:0 12px 20px #35171f12}
+ .main-nav.is-open>a{padding:12px 15px;font-size:17px}.main-nav.is-open .dealership-nav{margin-top:10px}
+}
+@media(max-width:600px){
+ body{font-size:17px}.nav-row{height:72px;padding:0 16px}.brand,.brand img{width:143px}.main-nav.is-open{top:72px;max-height:calc(100svh - 72px)}
+ .hero h1{font-size:40px}.hero-description{font-size:16px}.hero-content .eyebrow{font-size:10px}.hero-content .button{font-size:14px}
+ .intro h2,.home-products .section-heading h2,.center-heading h2{font-size:36px}
+ .intro p:not(.eyebrow),.performance-copy p,.partnership-copy p,.heritage p:not(.eyebrow),.news-grid p:not(.eyebrow),.center-heading p,.faq-section details p,.footer-brand p,.footer-grid p{font-size:17px}
+ .button,.outline-button,.text-link{font-size:15px}.faq-section summary{font-size:17px}
+ .oil-finder-callout .wrap{align-items:flex-start;flex-direction:column}.oil-finder-callout h2{font-size:34px}
+}
+/* Campaign composition: clear copy beside uncropped photography. */
+@media(min-width:601px){
+ .hero{background:#641426;height:clamp(540px,47vw,760px)}
+ .hero .hero-slides{left:42%;width:58%;overflow:hidden}
+ .hero .hero-ambient{display:block;object-fit:cover;filter:blur(24px) brightness(.65);transform:scale(1.12)}
+ .hero .hero-photo,.hero .hero-video{background:transparent}
+ .hero .hero-content{left:5%;right:auto;width:34%;bottom:120px;margin:0}
+ .hero h1{font-size:clamp(36px,3.8vw,62px);text-shadow:none;max-width:100%}
+ .hero-description{font-size:18px;text-shadow:none}
+ .hero-content .eyebrow{text-shadow:none}
+ .hero-bottom{width:90%}
+}
+@media(max-width:600px){
+ .hero{height:auto;min-height:0;max-height:none;background:#641426;--mobile-media-height:min(72svh,620px)}
+ .hero .hero-slides{position:relative;inset:auto;height:var(--mobile-media-height);width:100%}
+ .hero .hero-photo,.hero .hero-video{background:#151515}
+ .hero .hero-content{position:relative;inset:auto;bottom:auto;width:100%;margin:0;padding:24px 0 20px;display:flex;flex-direction:column;align-items:center;overflow:hidden}
+ .hero-content .eyebrow,.hero-content .hero-description{display:none}
+ .hero-content .button{order:0;margin:0 20px 22px;animation:none;font-size:16px}
+ .hero .hero-content h1{order:1;max-width:none;width:max-content;white-space:nowrap;font-size:26px;margin:0;line-height:1.4;letter-spacing:-.4px;animation:mobile-hero-ticker 12s linear infinite;text-shadow:none}
+ .hero-content h1 br{display:none}.hero-content h1 span:before{content:' '}
+ .hero .hero-bottom{top:calc(var(--mobile-media-height) - 64px);bottom:auto;width:calc(100% - 32px);left:16px;transform:none;margin:0}
+}
+@keyframes mobile-hero-ticker{from{transform:translateX(85%)}to{transform:translateX(-85%)}}
+@media(prefers-reduced-motion:reduce){.hero .hero-content h1{animation:none;white-space:normal;text-align:center;width:auto;padding-inline:20px}}

@@ -11,6 +11,7 @@ const adminLinks = [
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/products", label: "Products", icon: Boxes },
   { href: "/admin/content", label: "Website content", icon: Image },
+  { href: "/admin/home-media", label: "Home media", icon: Image },
   { href: "/admin/promos", label: "Promotions", icon: Tag },
   { href: "/admin/riders", label: "Rider team", icon: Bike },
   { href: "/admin/oil-finder", label: "Vehicle oil finder", icon: Boxes },
@@ -34,7 +35,7 @@ export function DashboardShell({ children, role = "ADMIN" }: { children: ReactNo
       <Link href="/" className="dash-brand"><span className="dash-brand-mark">α</span><span>ALPHA<small>LUBRICANTS</small></span></Link>
       <div className="dash-workspace-label">{role === "ADMIN" ? "BUSINESS WORKSPACE" : "RIDER WORKSPACE"}</div>
       <nav aria-label="Dashboard navigation">{links.map(item => <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={`dash-nav-link ${pathname === item.href ? "active" : ""}`}><item.icon size={19} /><span>{item.label}</span>{pathname === item.href && <ChevronRight size={14} />}</Link>)}</nav>
-      <div className="dash-sidebar-bottom"><div className="dash-help"><span className="dash-online-dot" /> Your connected workspace<p>Everything you need to keep moving forward.</p><Link href="/">View storefront <ExternalLink size={14} /></Link></div><div className="dash-profile"><span className="dash-avatar">{user.name?.slice(0, 1).toUpperCase() || "A"}</span><span><strong>{user.name}</strong><small>{role === "ADMIN" ? "Administrator" : "Rider partner"}</small></span><button aria-label="Sign out" onClick={logout}><LogOut size={18} /></button></div>{logoutError && <p role="alert" className="dash-error">{logoutError}</p>}</div>
+      <div className="dash-sidebar-bottom"><div className="dash-help"><span className="dash-online-dot" /> Your connected workspace<p>Everything you need to keep moving forward.</p><Link href="/">View storefront <ExternalLink size={14} /></Link></div><div className="dash-profile"><span className="dash-avatar">{user.name?.slice(0, 1).toUpperCase() || "A"}</span><span><strong>{user.name}</strong><small>{role === "ADMIN" ? "Administrator" : "Alpha Rider"}</small></span><button aria-label="Sign out" onClick={logout}><LogOut size={18} /></button></div>{logoutError && <p role="alert" className="dash-error">{logoutError}</p>}</div>
     </aside>
     <div className="dash-main"><header className="dash-topbar"><div><button className="dash-mobile-menu" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button><span>Workspace</span><ChevronRight size={14} /><strong>{links.find(item => item.href === pathname)?.label || "Overview"}</strong></div><Link href="/">Visit website <ArrowUpRight size={16} /></Link></header><main className="dash-content">{children}</main><footer className="dash-footer"><span>Alpha Lubricants · Business workspace</span><span>Made to keep you moving.</span></footer></div>
   </div>;

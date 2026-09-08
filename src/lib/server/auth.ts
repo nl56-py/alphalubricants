@@ -16,6 +16,8 @@ export async function currentUser() {
   const { id, name, email, role, phone } = session.user;
   return { id, name, email, role, phone };
 }
+
+
 export async function requireUser(roles?: Role[]) {
   const user = await currentUser();
   if (!user) throw new ApiError(401, 'Please sign in to continue.');

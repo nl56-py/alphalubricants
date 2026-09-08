@@ -6,7 +6,7 @@ import {useEffect,useState} from 'react';
 import {ArrowUpRight,ChevronDown,Globe,Menu,Search,ShoppingBag,UserRound,X,Facebook,Instagram,Youtube,ArrowUp,type LucideIcon} from 'lucide-react';
 import {useCart} from '@/components/shop/cart-provider';
 type Settings={facebook?:string;instagram?:string;youtube?:string;phone?:string;email?:string;address?:string};
-const nav=[['Products','/products'],['Find my oil','/oil-finder'],['Offers','/offers'],['Riders','/community'],['Gallery','/gallery'],['Videos','/videos'],['Blogs','/blog'],['Contact','/contact'],['Join dealership','/dealership']];
+const nav=[['Products','/products'],['Find my oil','/oil-finder'],['Riders','/community'],['Gallery','/gallery'],['Videos','/videos'],['Blogs','/blog'],['Contact','/contact'],['Join dealership','/dealership']];
 export function SiteChrome({children,settings}:{children:React.ReactNode;settings:Settings}) {
  const path=usePathname(); const [open,setOpen]=useState(false);const [search,setSearch]=useState(false);const {itemCount}=useCart();
  useEffect(()=>{setOpen(false);setSearch(false)},[path]);

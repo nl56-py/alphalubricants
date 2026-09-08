@@ -12,10 +12,32 @@ export function requireDatabase() {
 }
 export function validateOrigin(request: NextRequest) {
   const origin = request.headers.get('origin');
-  const configured = process.env.APP_URL;
-  const expected = configured ? new URL(configured).origin : request.nextUrl.origin;
-  if (!origin || origin !== expected) throw new ApiError(403, 'This request must originate from this website.');
+  if (!origin) throw new ApiError(403, 'This request must originate from this website.');
+
+  // 1. Direct match with incoming request URL origin (e.g. http://localhost:3000 or production domain)
+  if (origin === request.nextUrl.origin) return;
+
+  // 2. Match with configured APP_URL or NEXT_PUBLIC_SITE_URL if specified
+  const allowedUrls = [process.env.APP_URL, process.env.NEXT_PUBLIC_SITE_URL].filter(Boolean) as string[];
+  for (const urlStr of allowedUrls) {
+    try {
+      if (origin === new URL(urlStr).origin) return;
+    } catch { /* ignore invalid URL string */ }
+  }
+
+  // 3. In non-production environments, allow localhost / 127.0.0.1 on any local port
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      const parsed = new URL(origin);
+      if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+        return;
+      }
+    } catch { /* ignore */ }
+  }
+
+  throw new ApiError(403, 'This request must originate from this website.');
 }
+
 export async function readJson(request: NextRequest) {
   if (!request.headers.get('content-type')?.includes('application/json')) throw new ApiError(415, 'Send JSON content.');
   const body = (await readBytes(request, 100_000)).toString('utf8');

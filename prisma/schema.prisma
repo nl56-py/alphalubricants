@@ -41,10 +41,13 @@ model User {
   email        String   @unique @db.VarChar(191)
   passwordHash String   @db.VarChar(255)
   phone        String?  @db.VarChar(30)
+  image        String?  @db.VarChar(1024)
+  bio          String?  @db.Text
   role         Role     @default(CUSTOMER)
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
   sessions     Session[]
   orders       Order[]  @relation("CustomerOrders")
   deliveries   Order[]  @relation("RiderOrders")
@@ -158,6 +161,7 @@ model Content {
   excerpt     String?     @db.Text
   body        String?     @db.LongText
   image       String?     @db.VarChar(1024)
+  mobileImage String?     @db.VarChar(1024)
   youtubeUrl  String?     @db.VarChar(1024)
   videoUrl    String?     @db.VarChar(1024)
   rating      Int?

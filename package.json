@@ -1,6 +1,6 @@
 {
   "name": "alpha-lubricants", "version": "1.0.0", "private": true,
-  "scripts": {"dev":"next dev --hostname 0.0.0.0", "build":"prisma generate && next build", "start":"next start --hostname 0.0.0.0", "typecheck":"tsc --noEmit", "test":"tsx --test tests/*.test.ts", "db:generate":"prisma generate", "db:push":"prisma db push", "db:migrate":"prisma migrate deploy", "db:seed":"tsx scripts/seed.ts"},
+  "scripts": {"dev":"next dev --hostname 0.0.0.0", "build":"prisma generate && next build", "package:da":"node scripts/prepare-directadmin.mjs", "start":"next start --hostname 0.0.0.0", "typecheck":"tsc --noEmit", "test":"tsx --test tests/*.test.ts", "db:generate":"prisma generate", "db:push":"prisma db push", "db:migrate":"prisma migrate deploy", "db:seed":"tsx scripts/seed.ts"},
   "dependencies": {"next":"^16.1.6","react":"^19.2.4","react-dom":"^19.2.4","@prisma/client":"^6.19.2","bcryptjs":"^3.0.3","zod":"^3.25.76","lucide-react":"^0.577.0","sharp":"^0.34.5"},
   "devDependencies":{"typescript":"^5.9.3","@types/node":"^22.19.0","@types/react":"^19.2.14","@types/react-dom":"^19.2.3","prisma":"^6.19.2","tsx":"^4.21.0"},
   "prisma":{"seed":"tsx scripts/seed.ts"}

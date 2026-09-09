@@ -9,3 +9,4 @@ public/uploads/
 coverage/
 storage/
 *.log
+deploy_directadmin/

@@ -45,6 +45,14 @@
     display:block!important;
   }
 }
+
+@media(max-width:600px){
+  .hero .hero-content{display:flex;flex-direction:column;align-items:flex-start}
+  .hero .hero-content>.eyebrow{order:1}
+  .hero .hero-content>h1{order:2}
+  .hero .hero-content>.button{order:3;margin-bottom:10px}
+  .hero .hero-content>.hero-description{order:4;font-size:11px;line-height:1.45;max-width:280px;margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+}
 .hero-shade,
 .hero .hero-shade{
   display:none!important;

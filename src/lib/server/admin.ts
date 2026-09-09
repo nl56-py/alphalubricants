@@ -41,7 +41,15 @@ export async function listResource(resource: string, request: NextRequest) {
   }
   if (resource === 'content') {
     const type = request.nextUrl.searchParams.get('type');
-    const where = { ...(q ? { title: { contains: q } } : {}), ...(type ? { type: z.enum(['HERO', 'BLOG', 'GALLERY', 'VIDEO', 'OFFER', 'REVIEW', 'SOCIAL', 'RIDER_PROFILE']).parse(type) } : {}) };
+    const contentType = type ? z.enum(['HERO', 'BLOG', 'GALLERY', 'VIDEO', 'OFFER', 'REVIEW', 'SOCIAL', 'RIDER_PROFILE']).parse(type) : undefined;
+    const heroTarget = request.nextUrl.searchParams.get('heroTarget');
+    const heroMedia = request.nextUrl.searchParams.get('heroMedia');
+    const heroWhere: Prisma.ContentWhereInput = contentType === 'HERO' && heroTarget && heroMedia
+      ? heroTarget === 'mobile'
+        ? heroMedia === 'video' ? { mobileVideoUrl: { not: null } } : { mobileImage: { not: null }, mobileVideoUrl: null }
+        : heroMedia === 'video' ? { videoUrl: { not: null } } : { image: { not: null }, videoUrl: null }
+      : {};
+    const where: Prisma.ContentWhereInput = { ...(q ? { title: { contains: q } } : {}), ...(contentType ? { type: contentType } : {}), ...heroWhere };
     const [items, total] = await db.$transaction([db.content.findMany({ where, skip, take, orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }] }), db.content.count({ where })]);
     return { items, total, page, pageSize };
   }
@@ -83,7 +91,8 @@ export async function mutateResource(resource: string, actorId: string, raw: unk
         if (data.type === 'VIDEO' && !data.youtubeUrl && !data.videoUrl) throw new ApiError(400, 'Upload a video or provide a YouTube link.');
         if (data.published && data.type === 'REVIEW' && !data.body?.trim() && !data.excerpt?.trim()) throw new ApiError(400, 'Add the customer?s review before publishing.');
         if (data.published && data.type === 'SOCIAL' && !data.link) throw new ApiError(400, 'Add the original social post or profile link.');
-        if (['HERO', 'GALLERY'].includes(data.type) && !data.image) throw new ApiError(400, 'This content requires an image.');
+        if (data.type === 'GALLERY' && !data.image) throw new ApiError(400, 'Gallery content requires an image.');
+        if (data.type === 'HERO' && !data.image && !data.videoUrl && !data.mobileImage && !data.mobileVideoUrl) throw new ApiError(400, 'Add desktop or mobile hero media.');
         item = id ? await tx.content.update({ where: { id }, data }) : await tx.content.create({ data });
       }
     } else if (resource === 'promos') {

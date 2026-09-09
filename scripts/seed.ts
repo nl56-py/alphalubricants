@@ -16,7 +16,12 @@ async function seed() {
   } else if (existing.role !== 'ADMIN') throw new Error('ADMIN_EMAIL belongs to a non-admin user. Choose another email.');
   await db.setting.upsert({ where: { key: 'site' }, create: { key: 'site', value: defaultSettings }, update: {} });
   for (const product of fallbackProducts) await db.product.upsert({ where: { slug: product.slug }, create: product, update: {} });
-  for (const content of fallbackContent) await db.content.upsert({ where: { slug: content.slug }, create: { ...content, type: content.type as ContentType }, update: {} });
+  const heroSlugs = fallbackContent.filter(content => content.type === 'HERO').map(content => content.slug);
+  await db.content.deleteMany({ where: { type: 'HERO', slug: { notIn: heroSlugs } } });
+  for (const content of fallbackContent) {
+    const data = { ...content, type: content.type as ContentType };
+    await db.content.upsert({ where: { slug: content.slug }, create: data, update: content.type === 'HERO' ? data : {} });
+  }
   console.log('Initial catalog, content, site settings and admin are ready. Existing records and passwords were preserved.');
   console.log('Products begin with zero stock. Verify descriptions, prices and stock in the admin before accepting orders.');
 }

@@ -164,6 +164,7 @@ model Content {
   mobileImage String?     @db.VarChar(1024)
   youtubeUrl  String?     @db.VarChar(1024)
   videoUrl    String?     @db.VarChar(1024)
+  mobileVideoUrl String?  @db.VarChar(1024)
   rating      Int?
   platform    String?     @db.VarChar(30)
   link        String?     @db.VarChar(1024)

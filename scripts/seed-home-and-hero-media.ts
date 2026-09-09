@@ -1,106 +1,36 @@
-import { PrismaClient } from '@prisma/client';
+import { ContentType, PrismaClient } from '@prisma/client';
+import { defaultHomeMedia } from '../src/lib/server/catalog';
+import { fallbackContent } from '../src/lib/server/public-data';
+
+try { process.loadEnvFile('.env'); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
 
 const db = new PrismaClient();
 
 async function main() {
-  console.log('Seeding home_media setting and hero slides...');
-
-  // 1. Seed home_media setting
-  const homeMediaData = {
-    performanceImage: '/images/hero 16 9.jpg',
-    partnershipImage: '/images/riders.jpg',
-    categoryMotorcycleImage: '/images/motor cycle.jpg',
-    categoryOffroadImage: '/images/off roading.jpeg',
-    categoryTrackImage: '/images/alpha-racing.webp',
-    categoryIndustrialImage: '/images/alpha-racing.webp',
-    dealershipBannerImage: '/images/dealearship banner.jpg',
-    heritagePerformanceImage: '/images/Driven by passion..jpg',
-    heritageProtectionImage: '/images/product-sl.webp',
-    heritagePowerImage: '/images/hero-road.webp',
-  };
+  if (!process.env.DATABASE_URL) throw new Error('Set DATABASE_URL before seeding.');
 
   await db.setting.upsert({
     where: { key: 'home_media' },
-    update: { value: homeMediaData },
-    create: { key: 'home_media', value: homeMediaData },
+    update: { value: defaultHomeMedia },
+    create: { key: 'home_media', value: defaultHomeMedia },
   });
-  console.log('Upserted home_media setting.');
 
-  // 2. Seed HERO slides (two desk view videos + matching mobile videos)
-  const heroSlides = [
-    {
-      id: 'hero-1',
-      slug: 'engineered-for-your-journey',
-      title: 'Engineered for your journey.',
-      excerpt: 'Performance. Protection. Power. Discover Alpha engine oils for every road ahead.',
-      image: '/images/hero desk 1.jpg',
-      mobileImage: '/images/hero mob img 1.jpg',
-      videoUrl: '/video/hero desk 1.mp4',
-      link: '/products',
-      sortOrder: 0,
-      published: true,
-    },
-    {
-      id: 'hero-2',
-      slug: 'made-for-the-ride',
-      title: 'Made for the ride.',
-      excerpt: 'Your next journey starts here. Find the right Alpha engine oil for your motorcycle.',
-      image: '/images/hero 16 9.jpg',
-      mobileImage: '/images/mob hero 1.jpg',
-      videoUrl: '/video/hero desk 2.mp4',
-      link: '/products?category=Motorcycle',
-      sortOrder: 1,
-      published: true,
-    },
-  ];
-
-  // Remove any obsolete hero slides not in heroSlides list
+  const heroContent = fallbackContent.filter(content => content.type === 'HERO');
   await db.content.deleteMany({
-    where: {
-      type: 'HERO',
-      id: { notIn: heroSlides.map(s => s.id) },
-    },
+    where: { type: 'HERO', slug: { notIn: heroContent.map(content => content.slug) } },
   });
-  console.log('Cleaned up obsolete hero slides.');
 
-  for (const slide of heroSlides) {
-    await db.content.upsert({
-      where: { slug: slide.slug },
-      update: {
-        title: slide.title,
-        excerpt: slide.excerpt,
-        image: slide.image,
-        mobileImage: slide.mobileImage,
-        videoUrl: slide.videoUrl,
-        link: slide.link,
-        sortOrder: slide.sortOrder,
-        published: slide.published,
-      },
-      create: {
-        id: slide.id,
-        type: 'HERO',
-        slug: slide.slug,
-        title: slide.title,
-        excerpt: slide.excerpt,
-        image: slide.image,
-        mobileImage: slide.mobileImage,
-        videoUrl: slide.videoUrl,
-        link: slide.link,
-        sortOrder: slide.sortOrder,
-        published: slide.published,
-      },
-    });
-    console.log(`Upserted hero slide: ${slide.slug}`);
+  for (const content of heroContent) {
+    const data = { ...content, type: content.type as ContentType };
+    await db.content.upsert({ where: { slug: content.slug }, create: data, update: data });
   }
 
-  console.log('Seeding completed successfully!');
+  console.log('Homepage media and responsive hero playlists seeded.');
 }
 
 main()
-  .catch(e => {
-    console.error('Error seeding media:', e);
-    process.exit(1);
+  .catch(error => {
+    console.error(error instanceof Error ? error.message : 'Media seed failed.');
+    process.exitCode = 1;
   })
-  .finally(async () => {
-    await db.$disconnect();
-  });
+  .finally(() => db.$disconnect());

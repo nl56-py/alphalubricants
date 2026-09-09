@@ -1,2 +1,2 @@
-import { ResourceManager } from '@/components/dashboard/ResourceManager';
-export default function ContentPage() { return <ResourceManager resource="content" />; }
+import { ContentManager } from '@/components/dashboard/ContentManager';
+export default function ContentPage() { return <ContentManager />; }

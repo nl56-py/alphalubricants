@@ -6,18 +6,21 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { adminGuard } from '@/lib/server/admin';
 import { ApiError, readBytes, route, validateOrigin } from '@/lib/server/http';
 export const runtime = 'nodejs';
+export const maxDuration = 300;
+export const dynamic = 'force-dynamic';
 const uploadDir = () => process.env.UPLOAD_DIR && isAbsolute(process.env.UPLOAD_DIR) ? process.env.UPLOAD_DIR : join(process.cwd(), 'storage', 'uploads');
 export const POST = route(async request => {
   validateOrigin(request);
   const actor = await adminGuard(request, true);
   const contentType = request.headers.get('content-type') ?? '';
-  if (!contentType.startsWith('multipart/form-data;')) throw new ApiError(415, 'Upload a multipart image file.');
-  const bytes = await readBytes(request, 41 * 1024 * 1024);
+  if (!contentType.startsWith('multipart/form-data;')) throw new ApiError(415, 'Upload a multipart image or video file.');
+  const maxUploadBytes = 500 * 1024 * 1024; // 500 MB
+  const bytes = await readBytes(request, maxUploadBytes + 12 * 1024 * 1024);
   const form = await new Response(new Uint8Array(bytes), { headers: { 'content-type': contentType } }).formData();
   const file = form.get('file');
-  if (!(file instanceof File) || !file.size) throw new ApiError(400, 'Choose an image file.');
+  if (!(file instanceof File) || !file.size) throw new ApiError(400, 'Choose an image or video file.');
   if (['video/mp4', 'video/webm'].includes(file.type)) {
-    if (file.size > 40 * 1024 * 1024) throw new ApiError(413, 'Keep background videos under 40 MB.');
+    if (file.size > maxUploadBytes) throw new ApiError(413, 'Keep videos under 500 MB.');
     const buffer = Buffer.from(await file.arrayBuffer());
     const isMp4 = file.type === 'video/mp4' && buffer.subarray(4, 8).toString() === 'ftyp';
     const isWebm = file.type === 'video/webm' && buffer.subarray(0, 4).toString('hex') === '1a45dfa3';
@@ -27,7 +30,7 @@ export const POST = route(async request => {
     await mkdir(directory, { recursive: true }); await writeFile(resolve(directory, filename), buffer, { flag: 'wx' });
     return NextResponse.json({ url: `/api/media/${filename}`, mediaType: 'video' }, { status: 201 });
   }
-  if (file.size > 8 * 1024 * 1024) throw new ApiError(413, 'Keep images under 8 MB.');
+  if (file.size > 50 * 1024 * 1024) throw new ApiError(413, 'Keep images under 50 MB.');
   if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) throw new ApiError(415, 'Use JPEG, PNG, WebP or AVIF images.');
   let output: { data: Buffer; info: sharp.OutputInfo };
   try { output = await sharp(Buffer.from(await file.arrayBuffer()), { limitInputPixels: 40_000_000, animated: false }).rotate().resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true }).webp({ quality: 84 }).toBuffer({ resolveWithObject: true }); }

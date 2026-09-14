@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, FileText, ImagePlus, Images, ListOrdered, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, FileText, ImagePlus, Images, ListOrdered, Monitor, Pencil, Play, Plus, Search, Smartphone, Trash2, X } from 'lucide-react';
 import { api, dateLabel } from './session';
 import type { Entity } from './types';
 
@@ -158,13 +158,23 @@ export function ContentManager() {
       </>
     )}
 
-    {(editing || creating) && <ContentEditor type={(editing?.type as ContentType) || creating!} item={editing} initial={defaults(creating || type, heroTarget, heroMedia)} onClose={() => { setEditing(null); setCreating(null); }} onSaved={() => { setEditing(null); setCreating(null); setNotice('Content saved successfully.'); setVersion(value => value + 1); }} />}
+    {(editing || creating) && (
+      <ContentEditor
+        type={(editing?.type as ContentType) || creating!}
+        item={editing}
+        initial={defaults(creating || type, heroTarget, heroMedia)}
+        initialHeroTarget={heroTarget}
+        onClose={() => { setEditing(null); setCreating(null); }}
+        onSaved={() => { setEditing(null); setCreating(null); setNotice('Content saved successfully.'); setVersion(value => value + 1); }}
+      />
+    )}
     {deleting && <div className="dash-modal-backdrop"><section className="dash-confirm" role="dialog" aria-modal="true"><h2>Delete this content?</h2><p>This removes it from the website and cannot be undone.</p><div className="dash-modal-actions"><button className="dash-button secondary" onClick={() => setDeleting(null)}>Keep content</button><button className="dash-button" onClick={remove}>Delete content</button></div></section></div>}
   </>;
 }
 
 function HeroOrderManager({ onSaved }: { onSaved: () => void }) {
-  const [items, setItems] = useState<Entity[]>([]);
+  const [orderTarget, setOrderTarget] = useState<'desktop' | 'mobile'>('desktop');
+  const [allItems, setAllItems] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -179,7 +189,7 @@ function HeroOrderManager({ onSaved }: { onSaved: () => void }) {
       .then(data => {
         if (active) {
           const sorted = [...(data.items || [])].sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
-          setItems(sorted);
+          setAllItems(sorted);
         }
       })
       .catch(err => {
@@ -191,13 +201,19 @@ function HeroOrderManager({ onSaved }: { onSaved: () => void }) {
     return () => { active = false; };
   }, []);
 
+  const desktopItems = allItems.filter(item => Boolean(item.image || item.videoUrl || (!item.mobileImage && !item.mobileVideoUrl)));
+  const mobileItems = allItems.filter(item => Boolean(item.mobileImage || item.mobileVideoUrl || (!item.image && !item.videoUrl)));
+  const currentItems = orderTarget === 'desktop' ? desktopItems : mobileItems;
+
   function move(index: number, direction: 'up' | 'down') {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= items.length) return;
-    const next = [...items];
-    const [moved] = next.splice(index, 1);
-    next.splice(targetIndex, 0, moved);
-    setItems(next);
+    if (targetIndex < 0 || targetIndex >= currentItems.length) return;
+    const nextCurrent = [...currentItems];
+    const [moved] = nextCurrent.splice(index, 1);
+    nextCurrent.splice(targetIndex, 0, moved);
+
+    const otherItems = allItems.filter(item => !currentItems.some(c => c.id === item.id));
+    setAllItems([...nextCurrent, ...otherItems]);
     setDirty(true);
     setSuccess('');
   }
@@ -208,7 +224,7 @@ function HeroOrderManager({ onSaved }: { onSaved: () => void }) {
     setSuccess('');
     try {
       const payload = {
-        items: items.map((item, index) => ({
+        items: currentItems.map((item, index) => ({
           id: String(item.id),
           sortOrder: index * 10,
         })),
@@ -218,7 +234,7 @@ function HeroOrderManager({ onSaved }: { onSaved: () => void }) {
         body: JSON.stringify(payload),
       });
       setDirty(false);
-      setSuccess('Hero media order updated and published successfully!');
+      setSuccess(`${orderTarget === 'desktop' ? 'Desktop' : 'Mobile'} hero display order saved and published successfully!`);
       onSaved();
     } catch (err) {
       setError((err as Error).message);
@@ -231,47 +247,65 @@ function HeroOrderManager({ onSaved }: { onSaved: () => void }) {
     <section className="dash-panel">
       <div className="dash-panel-heading">
         <div>
-          <h2>Hero display order (all media)</h2>
-          <p>Set the sequential display order for all hero images and videos across desktop and mobile. Items at the top appear first.</p>
+          <h2>Hero Display Order Management</h2>
+          <p>Organize the sequential display order for hero media. Choose a sub-tab below to set independent order for Desktop and Mobile viewports.</p>
         </div>
         <div className="dash-module-actions">
           {dirty && <span className="dash-badge active">Unsaved Changes</span>}
-          <button className="dash-button" disabled={saving || !dirty || items.length === 0} onClick={saveOrder}>
-            <Check size={16} /> {saving ? 'Saving...' : 'Save New Order'}
+          <button className="dash-button" disabled={saving || !dirty || currentItems.length === 0} onClick={saveOrder}>
+            <Check size={16} /> {saving ? 'Saving...' : `Save ${orderTarget === 'desktop' ? 'Desktop' : 'Mobile'} Order`}
           </button>
         </div>
       </div>
 
-      {error && <p className="dash-error" role="alert">{error}</p>}
-      {success && <p className="dash-success" role="status"><Check size={17} />{success}</p>}
+      <div className="dash-tabs" style={{ margin: '0 24px 20px' }} aria-label="Hero order sub-tabs">
+        <button
+          type="button"
+          className={orderTarget === 'desktop' ? 'active' : ''}
+          onClick={() => { setOrderTarget('desktop'); setSuccess(''); }}
+        >
+          <Monitor size={15} /> Desktop View Order ({desktopItems.length})
+        </button>
+        <button
+          type="button"
+          className={orderTarget === 'mobile' ? 'active' : ''}
+          onClick={() => { setOrderTarget('mobile'); setSuccess(''); }}
+        >
+          <Smartphone size={15} /> Mobile View Order ({mobileItems.length})
+        </button>
+      </div>
+
+      {error && <p className="dash-error" role="alert" style={{ margin: '0 24px 16px' }}>{error}</p>}
+      {success && <p className="dash-success" role="status" style={{ margin: '0 24px 16px' }}><Check size={17} />{success}</p>}
 
       {loading ? (
-        <div className="dash-empty">Loading hero media...</div>
-      ) : items.length === 0 ? (
+        <div className="dash-empty">Loading {orderTarget} hero media...</div>
+      ) : currentItems.length === 0 ? (
         <div className="dash-empty">
           <FileText size={34} />
-          <h3>No hero media found.</h3>
-          <p>Add hero images or videos in the "Add &amp; Manage Media" tab first.</p>
+          <h3>No {orderTarget} hero media found.</h3>
+          <p>Add {orderTarget} hero images or videos in the "Add &amp; Manage Media" tab first.</p>
         </div>
       ) : (
         <div className="dash-hero-order-list">
-          {items.map((item, index) => {
-            const hasDesktopImg = Boolean(item.image);
-            const hasDesktopVid = Boolean(item.videoUrl);
-            const hasMobileImg = Boolean(item.mobileImage);
-            const hasMobileVid = Boolean(item.mobileVideoUrl);
-            const previewMedia = item.image || item.mobileImage || item.videoUrl || item.mobileVideoUrl;
-            const isVideo = !item.image && !item.mobileImage && (Boolean(item.videoUrl) || Boolean(item.mobileVideoUrl));
+          {currentItems.map((item, index) => {
+            const isMobileView = orderTarget === 'mobile';
+            const mediaUrl = isMobileView
+              ? (item.mobileImage || item.mobileVideoUrl || item.image || item.videoUrl)
+              : (item.image || item.videoUrl);
+            const isVideo = isMobileView
+              ? Boolean(item.mobileVideoUrl) || (!item.mobileImage && Boolean(item.videoUrl))
+              : Boolean(item.videoUrl);
 
             return (
               <div key={item.id} className="dash-hero-order-item">
                 <div className="dash-hero-order-position">#{index + 1}</div>
                 <div className="dash-hero-order-preview">
-                  {previewMedia ? (
+                  {mediaUrl ? (
                     isVideo ? (
-                      <video src={String(previewMedia)} muted preload="metadata" />
+                      <video src={String(mediaUrl)} muted preload="metadata" />
                     ) : (
-                      <img src={String(previewMedia)} alt="" />
+                      <img src={String(mediaUrl)} alt="" />
                     )
                   ) : (
                     <FileText size={24} />
@@ -281,14 +315,23 @@ function HeroOrderManager({ onSaved }: { onSaved: () => void }) {
                   <strong>{String(item.title || 'Untitled Hero Slide')}</strong>
                   <p>{String(item.excerpt || item.slug || 'No description')}</p>
                   <div className="dash-hero-order-badges">
-                    {hasDesktopImg && <span className="dash-badge delivered">Desktop Image</span>}
-                    {hasDesktopVid && <span className="dash-badge processing">Desktop Video</span>}
-                    {hasMobileImg && <span className="dash-badge delivered">Mobile Image</span>}
-                    {hasMobileVid && <span className="dash-badge processing">Mobile Video</span>}
+                    {isMobileView ? (
+                      item.mobileVideoUrl ? (
+                        <span className="dash-badge processing">Mobile Video</span>
+                      ) : (
+                        <span className="dash-badge delivered">Mobile Image</span>
+                      )
+                    ) : (
+                      item.videoUrl ? (
+                        <span className="dash-badge processing">Desktop Video</span>
+                      ) : (
+                        <span className="dash-badge delivered">Desktop Image</span>
+                      )
+                    )}
                     <span className={`dash-badge ${item.published ? 'delivered' : 'cancelled'}`}>
                       {item.published ? 'Published' : 'Draft'}
                     </span>
-                    <span className="dash-badge info">Sort: {String(item.sortOrder ?? index * 10)}</span>
+                    <span className="dash-badge info">Sequence: #{index + 1}</span>
                   </div>
                 </div>
                 <div className="dash-hero-order-controls">
@@ -306,7 +349,7 @@ function HeroOrderManager({ onSaved }: { onSaved: () => void }) {
                     type="button"
                     className="dash-icon-button"
                     aria-label="Move item down"
-                    disabled={index === items.length - 1 || saving}
+                    disabled={index === currentItems.length - 1 || saving}
                     onClick={() => move(index, 'down')}
                     title="Move down"
                   >
@@ -325,58 +368,249 @@ function HeroOrderManager({ onSaved }: { onSaved: () => void }) {
 function ContentCard({ item, heroTarget, heroMedia, onEdit, onDelete }: { item: Entity; heroTarget: HeroTarget; heroMedia: HeroMedia; onEdit: () => void; onDelete: () => void }) {
   const type = item.type as ContentType;
   const media = type === 'HERO'
-    ? heroTarget === 'mobile' ? heroMedia === 'video' ? item.mobileVideoUrl : item.mobileImage : heroMedia === 'video' ? item.videoUrl : item.image
+    ? heroTarget === 'mobile' ? (item.mobileVideoUrl || item.mobileImage || item.image) : (item.videoUrl || item.image)
     : item.image || item.videoUrl;
-  const isVideo = (type === 'HERO' && heroMedia === 'video') || type === 'VIDEO';
+  const isVideo = type === 'HERO'
+    ? (heroTarget === 'mobile' ? Boolean(item.mobileVideoUrl) : Boolean(item.videoUrl))
+    : type === 'VIDEO';
   return <article className="dash-content-card">
     <div className="dash-content-preview">{media ? isVideo ? <video src={String(media)} muted controls preload="metadata" /> : <img src={String(media)} alt="" /> : <FileText size={30} />}</div>
-    <div className="dash-content-card-copy"><span className="dash-eyebrow">{typeNames[type]}</span><h3>{String(item.title)}</h3><p>{String(item.excerpt || item.slug || '')}</p><div><span className={`dash-badge ${item.published ? 'delivered' : 'cancelled'}`}>{item.published ? 'Published' : 'Draft'}</span><small>{dateLabel(String(item.updatedAt || item.createdAt || ''))}</small></div></div>
+    <div className="dash-content-card-copy"><span className="dash-eyebrow">{type === 'HERO' ? (heroTarget === 'mobile' ? 'Mobile Hero' : 'Desktop Hero') : typeNames[type]}</span><h3>{String(item.title)}</h3><p>{String(item.excerpt || item.slug || '')}</p><div><span className={`dash-badge ${item.published ? 'delivered' : 'cancelled'}`}>{item.published ? 'Published' : 'Draft'}</span><small>{dateLabel(String(item.updatedAt || item.createdAt || ''))}</small></div></div>
     <div className="dash-row-actions"><button className="dash-icon-button" aria-label="Edit content" onClick={onEdit}><Pencil size={16} /></button><button className="dash-icon-button danger" aria-label="Delete content" onClick={onDelete}><Trash2 size={16} /></button></div>
   </article>;
 }
 
-function ContentEditor({ type, item, initial, onClose, onSaved }: { type: ContentType; item: Entity | null; initial: Record<string, unknown>; onClose: () => void; onSaved: () => void }) {
+function ContentEditor({
+  type,
+  item,
+  initial,
+  initialHeroTarget = 'desktop',
+  onClose,
+  onSaved,
+}: {
+  type: ContentType;
+  item: Entity | null;
+  initial: Record<string, unknown>;
+  initialHeroTarget?: HeroTarget;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const dialog = useRef<HTMLDivElement>(null);
   const [values, setValues] = useState<Record<string, unknown>>({ ...initial, ...item, type });
+  const [editorTarget, setEditorTarget] = useState<'desktop' | 'mobile' | 'both'>(
+    type === 'HERO' ? (initialHeroTarget === 'mobile' ? 'mobile' : 'desktop') : 'both'
+  );
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState('');
   const [error, setError] = useState('');
-  const fields = fieldsByType[type];
+  const allFields = fieldsByType[type];
+
+  // Filter fields when type === 'HERO' to provide individual mobile or desktop management
+  const fields = allFields.filter(f => {
+    if (type !== 'HERO') return true;
+    if (editorTarget === 'mobile') {
+      return f.key !== 'image' && f.key !== 'videoUrl';
+    }
+    if (editorTarget === 'desktop') {
+      return f.key !== 'mobileImage' && f.key !== 'mobileVideoUrl';
+    }
+    return true;
+  });
 
   useEffect(() => { dialog.current?.focus(); }, []);
+
+  function formatGoogleDriveUrl(url: string, field: string): string {
+    const match = url.match(/(?:file\/d\/|id=|open\?id=)([a-zA-Z0-9_-]{25,})/);
+    if (!match) return url;
+    const fileId = match[1];
+    if (field === 'image' || field === 'mobileImage') {
+      return `https://lh3.googleusercontent.com/d/${fileId}`;
+    }
+    return url;
+  }
+
   function change(key: string, value: unknown) {
+    let val = value;
+    if (typeof val === 'string' && ['image', 'mobileImage', 'videoUrl', 'mobileVideoUrl'].includes(key)) {
+      val = formatGoogleDriveUrl(val, key);
+    }
     setValues(current => {
-      const next = { ...current, [key]: value };
-      if (key === 'title' && !item && !current.slug) next.slug = String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const next = { ...current, [key]: val };
+      if (key === 'title' && !item && !current.slug) {
+        next.slug = String(val).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      }
       return next;
     });
   }
+
   async function upload(file: File | undefined, field: string) {
     if (!file) return;
-    setUploading(field); setError('');
-    try { const body = new FormData(); body.append('file', file); const result = await api<{ url: string }>('/api/admin/upload', { method: 'POST', body }); change(field, result.url); }
-    catch (reason) { setError((reason as Error).message); }
-    finally { setUploading(''); }
+    setUploading(field);
+    setError('');
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const result = await api<{ url: string }>('/api/admin/upload', { method: 'POST', body });
+      change(field, result.url);
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setUploading('');
+    }
   }
+
   async function submit(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setError('');
+    event.preventDefault();
+    setBusy(true);
+    setError('');
     try {
       const payload: Record<string, unknown> = { type };
-      for (const field of fields) {
+      for (const field of allFields) {
         const value = values[field.key];
-        payload[field.key] = field.kind === 'number' ? Number(value || 0) : ['image', 'mobileImage', 'videoUrl', 'mobileVideoUrl', 'youtubeUrl', 'link', 'excerpt', 'body'].includes(field.key) ? value || null : value;
+        payload[field.key] = field.kind === 'number'
+          ? Number(value || 0)
+          : ['image', 'mobileImage', 'videoUrl', 'mobileVideoUrl', 'youtubeUrl', 'link', 'excerpt', 'body'].includes(field.key)
+          ? value || null
+          : value;
       }
       if (type !== 'REVIEW') payload.rating = null;
       if (type !== 'SOCIAL') payload.platform = null;
       await api(`/api/admin/content${item ? `/${item.id}` : ''}`, { method: item ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
       onSaved();
-    } catch (reason) { setError((reason as Error).message); }
-    finally { setBusy(false); }
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   let section = '';
-  return <div className="dash-modal-backdrop"><div className="dash-modal" ref={dialog} tabIndex={-1} role="dialog" aria-modal="true"><div className="dash-modal-heading"><div><span className="dash-eyebrow">{item ? 'EDIT' : 'ADD'} {typeNames[type].toUpperCase()}</span><h2>{typeNames[type]} editor</h2></div><button className="dash-icon-button" disabled={busy || Boolean(uploading)} onClick={onClose}><X size={20} /></button></div><form onSubmit={submit}><div className="dash-form-grid">{fields.map(field => {
-    const heading = field.section && field.section !== section ? (section = field.section) : '';
-    return <div className={field.wide ? 'wide' : ''} key={field.key}>{heading && <h3 className="dash-form-section">{heading}</h3>}<label className={`dash-field ${field.kind === 'checkbox' ? 'dash-checkbox' : ''}`}>{field.kind === 'checkbox' ? <><input type="checkbox" checked={Boolean(values[field.key])} onChange={event => change(field.key, event.target.checked)} />{field.label}</> : <>{field.label}{field.required && <span className="dash-required">*</span>}{field.kind === 'textarea' ? <textarea rows={field.key === 'body' ? 10 : 4} value={String(values[field.key] || '')} required={field.required} onChange={event => change(field.key, event.target.value)} /> : field.kind === 'select' ? <select value={String(values[field.key] || '')} onChange={event => change(field.key, event.target.value)}>{field.options?.map(option => <option key={option}>{option}</option>)}</select> : field.kind === 'image' || field.kind === 'video' ? <div className="dash-image-field">{Boolean(values[field.key]) && (field.kind === 'video' ? <video src={String(values[field.key])} controls muted /> : <img src={String(values[field.key])} alt="Preview" />)}<input value={String(values[field.key] || '')} onChange={event => change(field.key, event.target.value)} placeholder={`Upload or enter ${field.kind} URL`} /><span className="dash-upload"><ImagePlus size={17} />{uploading === field.key ? 'Uploading...' : `Choose ${field.kind}`}<input type="file" accept={field.kind === 'video' ? 'video/mp4,video/webm' : 'image/jpeg,image/png,image/webp,image/avif'} disabled={Boolean(uploading)} onChange={event => upload(event.target.files?.[0], field.key)} /></span></div> : <input type={field.kind === 'number' ? 'number' : 'text'} min={field.key === 'rating' ? 1 : 0} max={field.key === 'rating' ? 5 : undefined} value={String(values[field.key] ?? '')} required={field.required} onChange={event => change(field.key, event.target.value)} />}{field.help && <small>{field.help}</small>}</>}</label></div>;
-  })}</div>{error && <p className="dash-error" role="alert">{error}</p>}<div className="dash-modal-actions"><button type="button" className="dash-button secondary" disabled={busy || Boolean(uploading)} onClick={onClose}>Cancel</button><button className="dash-button" disabled={busy || Boolean(uploading)}><Check size={17} />{busy ? 'Saving...' : 'Save changes'}</button></div></form></div></div>;
+  return (
+    <div className="dash-modal-backdrop">
+      <div className="dash-modal" ref={dialog} tabIndex={-1} role="dialog" aria-modal="true">
+        <div className="dash-modal-heading">
+          <div>
+            <span className="dash-eyebrow">{item ? 'EDIT' : 'ADD'} {typeNames[type].toUpperCase()}</span>
+            <h2>{type === 'HERO' ? (editorTarget === 'mobile' ? 'Mobile Hero Media (Individual)' : editorTarget === 'desktop' ? 'Desktop Hero Media (Individual)' : 'Hero Banner Editor') : `${typeNames[type]} editor`}</h2>
+          </div>
+          <button className="dash-icon-button" disabled={busy || Boolean(uploading)} onClick={onClose} aria-label="Close editor">
+            <X size={20} />
+          </button>
+        </div>
+
+        {type === 'HERO' && (
+          <div className="dash-tabs" style={{ margin: '0 0 18px' }} aria-label="Hero media viewport scope">
+            <button
+              type="button"
+              className={editorTarget === 'mobile' ? 'active' : ''}
+              onClick={() => setEditorTarget('mobile')}
+            >
+              <Smartphone size={14} /> Mobile Media (Individual)
+            </button>
+            <button
+              type="button"
+              className={editorTarget === 'desktop' ? 'active' : ''}
+              onClick={() => setEditorTarget('desktop')}
+            >
+              <Monitor size={14} /> Desktop Media (Individual)
+            </button>
+            <button
+              type="button"
+              className={editorTarget === 'both' ? 'active' : ''}
+              onClick={() => setEditorTarget('both')}
+            >
+              Combined (Both)
+            </button>
+          </div>
+        )}
+
+        <form onSubmit={submit}>
+          <div className="dash-form-grid">
+            {fields.map(field => {
+              const heading = field.section && field.section !== section ? (section = field.section) : '';
+              const val = String(values[field.key] || '');
+              const isDriveVideo = (field.kind === 'video') && val.includes('drive.google.com');
+
+              return (
+                <div className={field.wide ? 'wide' : ''} key={field.key}>
+                  {heading && editorTarget === 'both' && <h3 className="dash-form-section">{heading}</h3>}
+                  <label className={`dash-field ${field.kind === 'checkbox' ? 'dash-checkbox' : ''}`}>
+                    {field.kind === 'checkbox' ? (
+                      <>
+                        <input type="checkbox" checked={Boolean(values[field.key])} onChange={event => change(field.key, event.target.checked)} />
+                        {field.label}
+                      </>
+                    ) : (
+                      <>
+                        {field.label}
+                        {field.required && <span className="dash-required">*</span>}
+                        {field.kind === 'textarea' ? (
+                          <textarea rows={field.key === 'body' ? 10 : 4} value={val} required={field.required} onChange={event => change(field.key, event.target.value)} />
+                        ) : field.kind === 'select' ? (
+                          <select value={val} onChange={event => change(field.key, event.target.value)}>
+                            {field.options?.map(option => <option key={option}>{option}</option>)}
+                          </select>
+                        ) : field.kind === 'image' || field.kind === 'video' ? (
+                          <div className="dash-image-field">
+                            {Boolean(values[field.key]) && (
+                              field.kind === 'video' ? (
+                                <video src={val} controls muted style={{ maxWidth: '100%', maxHeight: '180px' }} />
+                              ) : (
+                                <img src={val} alt="Preview" />
+                              )
+                            )}
+                            <input
+                              value={val}
+                              onChange={event => change(field.key, event.target.value)}
+                              placeholder={`Upload (up to 500MB) or enter HTTPS ${field.kind} URL`}
+                            />
+                            <span className="dash-upload">
+                              <ImagePlus size={17} />
+                              {uploading === field.key ? 'Uploading (up to 500MB)...' : `Choose ${field.kind} (up to 500MB)`}
+                              <input
+                                type="file"
+                                accept={field.kind === 'video' ? 'video/mp4,video/webm' : 'image/jpeg,image/png,image/webp,image/avif'}
+                                disabled={Boolean(uploading)}
+                                onChange={event => upload(event.target.files?.[0], field.key)}
+                              />
+                            </span>
+                            {isDriveVideo && (
+                              <div style={{ marginTop: '8px', fontSize: '11px', color: '#8a4b08', background: '#fffaf0', border: '1px solid #fed7aa', borderRadius: '6px', padding: '8px 10px', lineHeight: '1.5' }}>
+                                ⚠️ <strong>Google Drive Video Notice:</strong> Google Drive sharing links cannot stream video in web players due to Google&apos;s Cross-Origin Policy and virus scan restrictions. Please use the <strong>&quot;Choose video&quot;</strong> button above to upload the MP4/WebM file directly (up to <strong>500 MB</strong> supported).
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <input
+                            type={field.kind === 'number' ? 'number' : 'text'}
+                            min={field.key === 'rating' ? 1 : 0}
+                            max={field.key === 'rating' ? 5 : undefined}
+                            value={String(values[field.key] ?? '')}
+                            required={field.required}
+                            onChange={event => change(field.key, event.target.value)}
+                          />
+                        )}
+                        {field.help && <small>{field.help}</small>}
+                      </>
+                    )}
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+
+          {error && <p className="dash-error" role="alert">{error}</p>}
+          <div className="dash-modal-actions">
+            <button type="button" className="dash-button secondary" disabled={busy || Boolean(uploading)} onClick={onClose}>
+              Cancel
+            </button>
+            <button className="dash-button" disabled={busy || Boolean(uploading)}>
+              <Check size={17} />
+              {busy ? 'Saving...' : 'Save changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }

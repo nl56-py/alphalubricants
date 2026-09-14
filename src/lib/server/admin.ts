@@ -44,10 +44,14 @@ export async function listResource(resource: string, request: NextRequest) {
     const contentType = type ? z.enum(['HERO', 'BLOG', 'GALLERY', 'VIDEO', 'OFFER', 'REVIEW', 'SOCIAL', 'RIDER_PROFILE']).parse(type) : undefined;
     const heroTarget = request.nextUrl.searchParams.get('heroTarget');
     const heroMedia = request.nextUrl.searchParams.get('heroMedia');
-    const heroWhere: Prisma.ContentWhereInput = contentType === 'HERO' && heroTarget && heroMedia
-      ? heroTarget === 'mobile'
-        ? heroMedia === 'video' ? { mobileVideoUrl: { not: null } } : { mobileImage: { not: null }, mobileVideoUrl: null }
-        : heroMedia === 'video' ? { videoUrl: { not: null } } : { image: { not: null }, videoUrl: null }
+    const heroWhere: Prisma.ContentWhereInput = contentType === 'HERO' && heroTarget
+      ? heroMedia
+        ? heroTarget === 'mobile'
+          ? heroMedia === 'video' ? { mobileVideoUrl: { not: null } } : { mobileImage: { not: null }, mobileVideoUrl: null }
+          : heroMedia === 'video' ? { videoUrl: { not: null } } : { image: { not: null }, videoUrl: null }
+        : heroTarget === 'mobile'
+          ? { OR: [{ mobileImage: { not: null } }, { mobileVideoUrl: { not: null } }] }
+          : { OR: [{ image: { not: null } }, { videoUrl: { not: null } }] }
       : {};
     const where: Prisma.ContentWhereInput = { ...(q ? { title: { contains: q } } : {}), ...(contentType ? { type: contentType } : {}), ...heroWhere };
     const [items, total] = await db.$transaction([db.content.findMany({ where, skip, take, orderBy: [{ sortOrder: 'asc' }, { updatedAt: 'desc' }] }), db.content.count({ where })]);

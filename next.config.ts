@@ -8,18 +8,27 @@ const csp = [
   "form-action 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://i.ytimg.com",
+  "img-src 'self' data: blob: https://i.ytimg.com https://drive.google.com https://*.googleusercontent.com https://lh3.googleusercontent.com",
   "font-src 'self' data:",
-  "media-src 'self' blob:",
-  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
-  "connect-src 'self'",
+  "media-src 'self' blob: https://drive.google.com https://*.googleusercontent.com",
+  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://drive.google.com",
+  "connect-src 'self' https://drive.google.com https://*.googleusercontent.com",
   "manifest-src 'self'",
   "worker-src 'self' blob:",
   "upgrade-insecure-requests"
 ].join('; ');
 const config: NextConfig = {
   output: 'standalone', poweredByHeader: false, devIndicators: false,
-  images: { formats: ['image/avif','image/webp'], minimumCacheTTL: 86400, remotePatterns: [{protocol:'https',hostname:'i.ytimg.com'}] },
+  images: {
+    formats: ['image/avif','image/webp'],
+    minimumCacheTTL: 86400,
+    remotePatterns: [
+      { protocol: 'https', hostname: 'i.ytimg.com' },
+      { protocol: 'https', hostname: 'drive.google.com' },
+      { protocol: 'https', hostname: '*.googleusercontent.com' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+    ],
+  },
   async headers() { return [{ source: '/(.*)', headers: [
     {key:'Content-Security-Policy',value:csp},
     {key:'Strict-Transport-Security',value:'max-age=31536000; includeSubDomains; preload'},

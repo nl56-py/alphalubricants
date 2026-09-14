@@ -76,3 +76,15 @@ test('public featured riders do not expose rider promo codes', async () => {
   }
 });
 
+test('session cookie options omit expires and maxAge for browser session destruction', async () => {
+  const { getSessionCookieOptions, SESSION_IDLE_TIMEOUT_MS } = await import('../src/lib/server/auth');
+  const options = getSessionCookieOptions();
+  assert.equal('expires' in options, false, 'Session cookie must not define persistent expires header');
+  assert.equal('maxAge' in options, false, 'Session cookie must not define persistent maxAge header');
+  assert.equal(options.httpOnly, true);
+  assert.equal(options.sameSite, 'lax');
+  assert.equal(options.path, '/');
+  assert.equal(SESSION_IDLE_TIMEOUT_MS, 2 * 60 * 60 * 1000, 'Database idle timeout should be 2 hours');
+});
+
+

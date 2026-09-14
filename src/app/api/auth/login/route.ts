@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/server/db';
-import { createSession } from '@/lib/server/auth';
+import { COOKIE, createSession } from '@/lib/server/auth';
 import { ApiError, rateLimit, readJson, requireDatabase, route, validateOrigin } from '@/lib/server/http';
 const schema = z.object({ email: z.string().trim().email().max(191).transform(s => s.toLowerCase()), password: z.string().min(1).max(72).refine(value => new TextEncoder().encode(value).length <= 72) });
 export const POST = route(async request => {
@@ -25,6 +25,8 @@ export const POST = route(async request => {
     }
     throw new ApiError(401, 'Email or password is incorrect.');
   }
-  await createSession(user.id);
-  return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role } });
+  const { token, cookieOptions } = await createSession(user.id);
+  const response = NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role } });
+  response.cookies.set(COOKIE, token, cookieOptions);
+  return response;
 });

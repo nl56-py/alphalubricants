@@ -36,8 +36,6 @@ const nav = [
   ["Blogs", "/blog"],
   ["Contact", "/contact"],
   ["Join dealership", "/dealership"],
-  ["Rider portal", "/rider"],
-  ["My Account", "/account"],
 ];
 export function SiteChrome({
   children,
@@ -63,7 +61,11 @@ export function SiteChrome({
       </a>
       <header className="site-header">
         <div className="utility">
-          <span>Performance. Protection. Power.</span>
+          <div className="utility-tagline" aria-label="Performance. Protection. Power.">
+            <span>Performance.</span>
+            <span>Protection.</span>
+            <span>Power.</span>
+          </div>
           <div>
             <Link href="/rider">
               Rider portal <ArrowUpRight size={12} />
@@ -95,6 +97,20 @@ export function SiteChrome({
                 {label === "Products" && <ChevronDown size={13} />}
               </Link>
             ))}
+            <div className="mobile-nav-utility">
+              <Link
+                href="/rider"
+                className={path.startsWith("/rider") ? "active" : ""}
+              >
+                Rider portal <ArrowUpRight size={14} />
+              </Link>
+              <Link
+                href="/account"
+                className={path.startsWith("/account") ? "active" : ""}
+              >
+                My Account
+              </Link>
+            </div>
           </nav>
           <div className="nav-actions">
             <button

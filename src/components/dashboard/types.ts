@@ -1,5 +1,5 @@
 export type Entity = { id: string; [key: string]: unknown };
-export type Order = { id: string; number: string; createdAt: string; status: string; totalPaisa: number; promoCode?: string; riderId?: string; user?: { name: string; email: string }; rider?: { name: string }; shipping?: { name?: string; phone?: string; address?: string; city?: string; notes?: string }; items?: { id: string; name: string; quantity: number; unitPricePaisa: number }[] };
+export type Order = { id: string; number: string; createdAt: string; status: string; totalPaisa: number; promoCode?: string; riderId?: string; isGuest?: boolean; guestName?: string; guestPhone?: string; guestAddress?: string; user?: { name: string; email: string }; rider?: { name: string }; shipping?: { name?: string; phone?: string; address?: string; city?: string; notes?: string }; items?: { id: string; name: string; quantity: number; unitPricePaisa: number }[] };
 export const orderStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 export const label = (value: unknown) => String(value ?? '').replaceAll('_', ' ');
 export const paisa = (value: unknown) => `Rs. ${(Number(value ?? 0) / 100).toLocaleString('en-NP', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;

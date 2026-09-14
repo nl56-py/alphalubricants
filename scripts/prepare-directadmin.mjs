@@ -9,13 +9,21 @@ const rootDir = path.resolve(__dirname, '..');
 
 console.log('🚀 [DirectAdmin Packager] Starting build and package process...');
 
+const productionEnv = {
+  ...process.env,
+  NODE_ENV: 'production',
+  APP_URL: 'https://alphalubricant.com',
+  NEXT_PUBLIC_SITE_URL: 'https://alphalubricant.com',
+  UPLOAD_DIR: './storage/uploads',
+};
+
 // 1. Generate Prisma Client (including Linux binary targets)
 console.log('📦 Step 1: Generating Prisma Client with Linux binary engines...');
-execSync('npx prisma generate', { cwd: rootDir, stdio: 'inherit' });
+execSync('npx prisma generate', { cwd: rootDir, stdio: 'inherit', env: productionEnv });
 
 // 2. Build Next.js in standalone mode
 console.log('🔨 Step 2: Building Next.js application...');
-execSync('npx next build', { cwd: rootDir, stdio: 'inherit' });
+execSync('npx next build', { cwd: rootDir, stdio: 'inherit', env: productionEnv });
 
 const standaloneDir = path.join(rootDir, '.next', 'standalone');
 const staticSrc = path.join(rootDir, '.next', 'static');
@@ -45,12 +53,39 @@ if (fs.existsSync(deployDir)) {
 fs.mkdirSync(deployDir, { recursive: true });
 
 console.log('📋 Step 5: Preparing deploy_directadmin folder...');
-fs.cpSync(standaloneDir, deployDir, { recursive: true });
+fs.cpSync(standaloneDir, deployDir, { recursive: true, dereference: true });
+const copiedEnv = path.join(deployDir, '.env');
+if (fs.existsSync(copiedEnv)) fs.rmSync(copiedEnv, { force: true });
+const copiedNodeModules = path.join(deployDir, 'node_modules');
+if (fs.existsSync(copiedNodeModules)) fs.rmSync(copiedNodeModules, { recursive: true, force: true });
 
-// Copy prisma schema so migrations or introspection can work on server if needed
+const deployPackageJsonPath = path.join(deployDir, 'package.json');
+const deployPackageJson = JSON.parse(fs.readFileSync(deployPackageJsonPath, 'utf8'));
+deployPackageJson.dependencies = {
+  ...deployPackageJson.dependencies,
+  prisma: deployPackageJson.devDependencies?.prisma ?? '^6.19.2',
+  tsx: deployPackageJson.devDependencies?.tsx ?? '^4.21.0',
+};
+fs.writeFileSync(deployPackageJsonPath, `${JSON.stringify(deployPackageJson, null, 2)}\n`, 'utf8');
+
+// Copy Prisma schema and migrations so server-side migration commands have everything they need.
 const prismaDeployDir = path.join(deployDir, 'prisma');
 fs.mkdirSync(prismaDeployDir, { recursive: true });
 fs.copyFileSync(path.join(rootDir, 'prisma', 'schema.prisma'), path.join(prismaDeployDir, 'schema.prisma'));
+const migrationsSrc = path.join(rootDir, 'prisma', 'migrations');
+const migrationsDest = path.join(prismaDeployDir, 'migrations');
+if (fs.existsSync(migrationsSrc)) {
+  fs.cpSync(migrationsSrc, migrationsDest, { recursive: true });
+}
+
+const scriptsDeployDir = path.join(deployDir, 'scripts');
+fs.mkdirSync(scriptsDeployDir, { recursive: true });
+fs.copyFileSync(path.join(rootDir, 'scripts', 'seed.ts'), path.join(scriptsDeployDir, 'seed.ts'));
+fs.copyFileSync(path.join(rootDir, 'scripts', 'seed.mjs'), path.join(scriptsDeployDir, 'seed.mjs'));
+const publicDataSrc = path.join(rootDir, 'src', 'lib', 'server', 'public-data.ts');
+const publicDataDest = path.join(deployDir, 'src', 'lib', 'server', 'public-data.ts');
+fs.mkdirSync(path.dirname(publicDataDest), { recursive: true });
+fs.copyFileSync(publicDataSrc, publicDataDest);
 
 // Create an example .env file for DirectAdmin
 const envSampleContent = `# DirectAdmin Production Environment Variables
@@ -63,11 +98,12 @@ HOSTNAME=0.0.0.0
 DATABASE_URL="mysql://your_db_user:your_db_password@localhost:3306/your_db_name"
 
 # Your domain URL
-APP_URL="https://yourdomain.com"
-NEXT_PUBLIC_SITE_URL="https://yourdomain.com"
+APP_URL="https://alphalubricant.com"
+NEXT_PUBLIC_SITE_URL="https://alphalubricant.com"
+UPLOAD_DIR="./storage/uploads"
 
 # Admin user credentials
-ADMIN_EMAIL="admin@yourdomain.com"
+ADMIN_EMAIL="admin@alphalubricant.com"
 ADMIN_PASSWORD="YourStrongPassword123!"
 ADMIN_NAME="Alpha Lubricants Admin"
 TRUST_PROXY="true"

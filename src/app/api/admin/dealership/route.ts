@@ -10,7 +10,7 @@ export const GET = route(async request => {
   const { page, pageSize, skip, take } = pagination(request);
   const status = request.nextUrl.searchParams.get('status');
   const q = request.nextUrl.searchParams.get('q')?.slice(0, 100);
-  const where = { ...(status ? { status: z.enum(dealershipStatuses).parse(status) } : {}), ...(q ? { OR: [{ name: { contains: q } }, { businessName: { contains: q } }, { district: { contains: q } }] } : {}) };
+  const where = { ...(status ? { status: z.enum(dealershipStatuses).parse(status) } : {}), ...(q ? { OR: [{ name: { contains: q } }, { businessName: { contains: q } }, { phone: { contains: q } }, { address: { contains: q } }] } : {}) };
   const [items, total] = await db.$transaction([db.dealershipEnquiry.findMany({ where, skip, take, orderBy: { createdAt: 'desc' } }), db.dealershipEnquiry.count({ where })]);
   return NextResponse.json({ items, total, page, pageSize });
 });

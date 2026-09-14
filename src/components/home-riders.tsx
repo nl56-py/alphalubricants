@@ -88,13 +88,6 @@ export function HomeRiderCommunity({
                 <div className="home-rider-content">
                   <h3 className="home-rider-name">{rider.name}</h3>
 
-                  {rider.promoCode && (
-                    <div className="home-rider-promo-chip">
-                      <Tag size={13} />
-                      <span>Code: <strong>{rider.promoCode}</strong></span>
-                    </div>
-                  )}
-
                   <p className="home-rider-bio">
                     {rider.bio || 'Official Alpha Lubricants rider representing power and protection on Nepal roads.'}
                   </p>

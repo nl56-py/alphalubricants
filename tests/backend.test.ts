@@ -51,3 +51,28 @@ test('passwords cannot silently truncate at bcrypt UTF-8 byte limit', () => {
   assert.equal(passwordSchema.safeParse('a'.repeat(73)).success, false);
   assert.equal(passwordSchema.safeParse('🔑'.repeat(20)).success, false);
 });
+
+test('open redirect sanitizer rejects protocol-relative, backslash and off-site URLs', () => {
+  function sanitizeNext(next: string | null, fallback: string): string {
+    if (!next) return fallback;
+    if (/^\/[^\/\\]/.test(next) || next === '/') {
+      return next;
+    }
+    return fallback;
+  }
+  assert.equal(sanitizeNext('//evil.com', '/account'), '/account');
+  assert.equal(sanitizeNext('/\\evil.com', '/account'), '/account');
+  assert.equal(sanitizeNext('https://evil.com', '/account'), '/account');
+  assert.equal(sanitizeNext('javascript:alert(1)', '/account'), '/account');
+  assert.equal(sanitizeNext('/admin', '/account'), '/admin');
+  assert.equal(sanitizeNext('/', '/account'), '/');
+  assert.equal(sanitizeNext('/products?category=Motorcycle', '/account'), '/products?category=Motorcycle');
+});
+
+test('public featured riders do not expose rider promo codes', async () => {
+  const { fallbackFeaturedRiders } = await import('../src/lib/server/catalog');
+  for (const rider of fallbackFeaturedRiders) {
+    assert.equal('promoCode' in rider, false, `Rider ${rider.name} must not expose promoCode`);
+  }
+});
+

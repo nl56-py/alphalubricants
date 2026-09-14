@@ -20,5 +20,51 @@ export function Heritage({ media }: { media?: HomeMediaSettings }){
     {label:'Power',title:'Keep moving forward.',text:'We share a passion for the ride. Alpha brings together engine care, a growing rider community and a local team in Kathmandu, ready to help.',image:media?.heritagePowerImage||'/images/hero-road.webp'}
   ];
   const [index,setIndex]=useState(0);
-  return <section className="heritage wrap" data-reveal><div><p className="eyebrow">THE ALPHA WAY</p><h2>Driven by passion.<br/><span>Defined by care.</span></h2><p>Good journeys begin with what goes into your engine. Get to know the three principles behind Alpha Lubricants.</p><Link className="outline-button" href="/about">Our story <ArrowUpRight size={16}/></Link></div><div><div className="heritage-image"><Image src={values[index].image} alt={values[index].label} fill sizes="(max-width:700px) 90vw, 45vw"/></div><h3>{values[index].title}</h3><p>{values[index].text}</p><div className="heritage-tabs" role="tablist" aria-label="Alpha principles">{values.map((v,i)=><button role="tab" aria-selected={i===index} key={v.label} onClick={()=>setIndex(i)}>{v.label}</button>)}</div></div></section>}
+  const [paused,setPaused]=useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = setInterval(() => {
+      setIndex(prev => (prev + 1) % values.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [paused, values.length]);
+
+  return <section className="heritage wrap" data-reveal>
+    <div>
+      <p className="eyebrow">THE ALPHA WAY</p>
+      <h2>Driven by passion.<br/><span>Defined by care.</span></h2>
+      <p>Good journeys begin with what goes into your engine. Get to know the three principles behind Alpha Lubricants.</p>
+      <Link className="outline-button" href="/about">Our story <ArrowUpRight size={16}/></Link>
+    </div>
+    <div
+      className="heritage-card-wrapper"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
+      <div className="heritage-tabs top-tabs" role="tablist" aria-label="Alpha principles">
+        {values.map((v, i) => (
+          <button
+            role="tab"
+            aria-selected={i === index}
+            key={v.label}
+            className={`heritage-tab-btn ${i === index ? 'active' : ''}`}
+            onClick={() => setIndex(i)}
+          >
+            <span className="tab-label">{v.label}</span>
+            {i === index && <span className="tab-indicator" />}
+          </button>
+        ))}
+      </div>
+      <div className="heritage-image">
+        <Image src={values[index].image} alt={values[index].label} fill sizes="(max-width:700px) 90vw, 45vw"/>
+      </div>
+      <h3>{values[index].title}</h3>
+      <p>{values[index].text}</p>
+    </div>
+  </section>;
+}
 export function TestimonialCards(){return <section className="testimonials wrap" data-reveal><div className="center-heading"><p className="eyebrow">THE PEOPLE BEHIND THE JOURNEYS</p><h2>Your engine.<br className="mobile-only"/> <span>Our commitment.</span></h2><p>Local support. A shared passion for performance.</p></div><div className="promise-grid"><article><Quote size={32}/><h3>Make the right choice</h3><p>Not sure which oil is right for your motorcycle? Tell us your make, model and year. We’ll help you understand the options.</p><Link href="/contact">Talk to the Alpha team <ArrowRight size={18}/></Link></article><article><Check size={30}/><h3>Know what you’re buying</h3><p>Explore original Alpha products, clear pack sizes and transparent prices. Keep your owner’s manual close and your engine’s needs first.</p><Link href="/products">Find your Alpha oil <ArrowRight size={18}/></Link></article></div></section>}

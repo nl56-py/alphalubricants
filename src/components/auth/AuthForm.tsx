@@ -16,8 +16,18 @@ export function AuthForm({ register = false }: { register?: boolean }) {
       const data = await api<{ user: SessionUser }>(`/api/auth/${register ? "register" : "login"}`, { method: "POST", body: JSON.stringify(values) });
       const next = new URLSearchParams(window.location.search).get("next");
       const destination = data.user?.role?.toUpperCase() === "ADMIN" ? "/admin" : data.user?.role?.toUpperCase() === "RIDER" ? "/rider" : "/account";
-      const safeNext = next?.startsWith('/') ? new URL(next, window.location.origin) : null;
-      window.location.href = safeNext?.origin === window.location.origin ? safeNext.pathname + safeNext.search + safeNext.hash : destination;
+      let target = destination;
+      if (next && (next === '/' || /^\/[^\/\\]/.test(next))) {
+        try {
+          const parsed = new URL(next, window.location.origin);
+          if (parsed.origin === window.location.origin) {
+            target = parsed.pathname + parsed.search + parsed.hash;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      window.location.href = target;
     } catch (e) { setError((e as Error).message); setBusy(false); }
   }
   return <main className="alpha-auth"><div className="auth-story"><Link href="/" className="dash-brand"><span className="dash-brand-mark">α</span><span>ALPHA<small>LUBRICANTS</small></span></Link><div><span className="dash-eyebrow">PERFORMANCE STARTS HERE</span><h1>A smoother journey.<br /><em>Every time.</em></h1><p>Find the right lubricant, keep track of your orders, and give your engine the care it deserves.</p></div><span className="auth-story-bottom">ENGINEERED FOR THE ROAD AHEAD <ArrowRight size={20} /></span></div><div className="auth-form-side"><div className="auth-form-inner"><Link href="/" className="dash-text-link">← Back to Alpha Lubricants</Link><div className="auth-lock"><LockKeyhole size={24} /></div><span className="dash-eyebrow">YOUR ALPHA ACCOUNT</span><h2>{register ? "Let’s get you moving." : "Welcome back."}</h2><p>{register ? "Create an account for a better journey with Alpha." : "Sign in to manage your orders and your account."}</p><form onSubmit={submit}>

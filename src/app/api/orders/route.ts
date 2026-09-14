@@ -10,7 +10,7 @@ export const GET = route(async request => {
   const rawStatus = request.nextUrl.searchParams.get('status');
   const status = rawStatus ? z.enum(['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']).parse(rawStatus) : undefined;
   const q = request.nextUrl.searchParams.get('q')?.trim().slice(0, 100);
-  const where = { AND: [orderScope(user), ...(status ? [{ status }] : []), ...(q ? [{ OR: [{ number: { contains: q } }, { user: { name: { contains: q } } }] }] : [])] };
+  const where = { AND: [orderScope(user), ...(status ? [{ status }] : []), ...(q ? [{ OR: [{ number: { contains: q } }, { user: { name: { contains: q } } }, { guestName: { contains: q } }, { guestPhone: { contains: q } }] }] : [])] };
   const [items, total] = await db.$transaction([db.order.findMany({ where, skip, take, orderBy: { createdAt: 'desc' }, include: { items: true, user: { select: userSelect }, rider: { select: userSelect } } }), db.order.count({ where })]);
   return NextResponse.json({ items, total, page, pageSize });
 });

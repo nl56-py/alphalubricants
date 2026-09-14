@@ -559,4 +559,149 @@ body{font-size:18px}
   margin-bottom: 24px;
 }
 
+.mobile-nav-utility {
+  display: none;
+}
 
+@media(max-width: 1250px) {
+  .mobile-nav-utility {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    gap: 0;
+  }
+  .mobile-nav-utility a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    font-size: 16px;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+  .mobile-nav-utility a:hover,
+  .mobile-nav-utility a.active {
+    color: var(--wine);
+    font-weight: 600;
+  }
+}
+
+/* Desktop view 3-row navbar tagline */
+.utility {
+  min-height: 46px;
+  height: auto;
+  align-items: center;
+  padding: 5px 42px;
+}
+.utility-tagline {
+  display: flex;
+  flex-direction: column;
+  margin-left: 240px;
+  line-height: 1.22;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: #655458;
+}
+.utility-tagline span {
+  display: block;
+}
+.utility-tagline span:first-child {
+  color: var(--wine);
+}
+@media(max-width: 1150px) {
+  .utility-tagline {
+    margin-left: 190px;
+  }
+}
+@media(max-width: 850px) {
+  .utility-tagline {
+    display: none;
+  }
+}
+
+/* Heritage Section: Enlarged Top Buttons & Animation */
+.heritage-card-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.heritage-tabs.top-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-bottom: 22px;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 2px;
+}
+
+.heritage-tab-btn {
+  position: relative;
+  background: transparent;
+  color: #6d5b62;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.heritage-tab-btn:hover {
+  color: var(--wine);
+  background: rgba(128, 30, 43, 0.05);
+}
+
+.heritage-tab-btn.active,
+.heritage-tab-btn[aria-selected="true"] {
+  color: var(--wine);
+  font-weight: 700;
+  background: rgba(128, 30, 43, 0.07);
+}
+
+.heritage-tab-btn .tab-indicator {
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--wine);
+  border-radius: 3px;
+  animation: tabFadeIn 0.25s ease forwards;
+}
+
+@keyframes tabFadeIn {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.heritage-image img {
+  transition: opacity 0.35s ease;
+}
+
+@media (max-width: 700px) {
+  .heritage-tabs.top-tabs {
+    gap: 6px;
+    justify-content: space-between;
+  }
+  .heritage-tab-btn {
+    font-size: 15px;
+    padding: 8px 12px;
+  }
+}

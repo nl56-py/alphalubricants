@@ -2,8 +2,26 @@ import { NextResponse } from 'next/server';
 import { revalidateTag } from 'next/cache';
 import { db } from '@/lib/server/db';
 import { adminGuard } from '@/lib/server/admin';
-import { route, readJson, requireDatabase } from '@/lib/server/http';
+import { route, readJson, requireDatabase, validateOrigin } from '@/lib/server/http';
+import { z } from 'zod';
 import { defaultHomeMedia, getHomeMedia, HomeMediaSettings } from '@/lib/server/catalog';
+
+const mediaUrlSchema = z.string().trim().max(1000).refine(val => !val || val.startsWith('/') || /^https?:\/\//.test(val), {
+  message: 'Image/video path must be a site path starting with / or an http(s) URL'
+});
+
+const homeMediaSchema = z.object({
+  performanceImage: mediaUrlSchema.optional(),
+  partnershipImage: mediaUrlSchema.optional(),
+  categoryMotorcycleImage: mediaUrlSchema.optional(),
+  categoryOffroadImage: mediaUrlSchema.optional(),
+  categoryTrackImage: mediaUrlSchema.optional(),
+  categoryIndustrialImage: mediaUrlSchema.optional(),
+  dealershipBannerImage: mediaUrlSchema.optional(),
+  heritagePerformanceImage: mediaUrlSchema.optional(),
+  heritageProtectionImage: mediaUrlSchema.optional(),
+  heritagePowerImage: mediaUrlSchema.optional(),
+});
 
 export const GET = route(async request => {
   await adminGuard(request);
@@ -13,9 +31,10 @@ export const GET = route(async request => {
 });
 
 export const PUT = route(async request => {
+  validateOrigin(request);
   const actor = await adminGuard(request, true);
   requireDatabase();
-  const raw = (await readJson(request)) as Partial<HomeMediaSettings>;
+  const raw = homeMediaSchema.parse(await readJson(request));
   const clean: HomeMediaSettings = {
     performanceImage: String(raw.performanceImage || defaultHomeMedia.performanceImage).trim(),
     partnershipImage: String(raw.partnershipImage || defaultHomeMedia.partnershipImage).trim(),

@@ -1,25 +1,56 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { PrismaClient, ContentType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { defaultSettings, fallbackContent, fallbackProducts } from '../src/lib/server/public-data';
 
-try { process.loadEnvFile('.env'); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+try {
+  process.loadEnvFile('.env');
+} catch (error) {
+  if (error?.code !== 'ENOENT') throw error;
+}
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const publicDataPath = path.join(__dirname, '..', 'src', 'lib', 'server', 'public-data.ts');
+const publicDataSource = fs.readFileSync(publicDataPath, 'utf8').replaceAll('export const ', 'const ');
+const { fallbackProducts, fallbackContent, defaultSettings } = Function(
+  `${publicDataSource}; return { fallbackProducts, fallbackContent, defaultSettings };`,
+)();
+
 const db = new PrismaClient();
+
 async function seed() {
   if (!process.env.DATABASE_URL) throw new Error('Set DATABASE_URL before seeding.');
+
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD;
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Set a valid ADMIN_EMAIL.');
+
   const existing = await db.user.findUnique({ where: { email } });
   if (!existing) {
-    if (!password || password.length < 12 || Buffer.byteLength(password) > 72) throw new Error('Set ADMIN_PASSWORD to a unique password of at least 12 characters (at most 72 UTF-8 bytes).');
-    await db.user.create({ data: { email, name: process.env.ADMIN_NAME || 'Alpha Administrator', passwordHash: await bcrypt.hash(password, 12), role: 'ADMIN' } });
-  } else if (existing.role !== 'ADMIN') throw new Error('ADMIN_EMAIL belongs to a non-admin user. Choose another email.');
+    if (!password || password.length < 12 || Buffer.byteLength(password) > 72) {
+      throw new Error('Set ADMIN_PASSWORD to a unique password of at least 12 characters (at most 72 UTF-8 bytes).');
+    }
+    await db.user.create({
+      data: {
+        email,
+        name: process.env.ADMIN_NAME || 'Alpha Administrator',
+        passwordHash: await bcrypt.hash(password, 12),
+        role: 'ADMIN',
+      },
+    });
+  } else if (existing.role !== 'ADMIN') {
+    throw new Error('ADMIN_EMAIL belongs to a non-admin user. Choose another email.');
+  }
+
   await db.setting.upsert({ where: { key: 'site' }, create: { key: 'site', value: defaultSettings }, update: {} });
   for (const product of fallbackProducts) await db.product.upsert({ where: { slug: product.slug }, create: product, update: {} });
-  const heroSlugs = fallbackContent.filter(content => content.type === 'HERO').map(content => content.slug);
+
+  const heroSlugs = fallbackContent.filter((content) => content.type === 'HERO').map((content) => content.slug);
   await db.content.deleteMany({ where: { type: 'HERO', slug: { notIn: heroSlugs } } });
   for (const content of fallbackContent) {
-    const data = { ...content, type: content.type as ContentType };
+    const data = { ...content, type: ContentType[content.type] };
     await db.content.upsert({ where: { slug: content.slug }, create: data, update: content.type === 'HERO' ? data : {} });
   }
 
@@ -93,4 +124,10 @@ async function seed() {
   console.log('Initial catalog, content, site settings, riders and admin are ready. Existing records and passwords were preserved.');
   console.log('Products begin with zero stock. Verify descriptions, prices and stock in the admin before accepting orders.');
 }
-seed().catch(error => { console.error(error instanceof Error ? error.message : 'Seed failed.'); process.exitCode = 1; }).finally(() => db.$disconnect());
+
+seed()
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : 'Seed failed.');
+    process.exitCode = 1;
+  })
+  .finally(() => db.$disconnect());

@@ -6,10 +6,10 @@ import { useCart } from './cart-provider';
 import { formatPrice } from './types';
 
 type Totals = { subtotalPaisa: number; discountPaisa: number; shippingPaisa: number; totalPaisa: number };
-type Shipping = { name: string; phone: string; email?: string; address: string; city: string; notes: string };
+type Shipping = { name: string; phone: string; address: string; email?: string; city?: string; notes?: string };
 export function CheckoutForm({ user }: { user: { name: string; phone: string | null; email: string } | null }) {
   const { items, hydrated, subtotalPaisa, clearCart } = useCart();
-  const [shipping, setShipping] = useState<Shipping>({ name: user?.name || '', phone: user?.phone || '', email: user?.email || '', address: '', city: '', notes: '' });
+  const [shipping, setShipping] = useState<Shipping>({ name: user?.name || '', phone: user?.phone || '', address: '', email: user?.email || '', city: '', notes: '' });
   const [promoCode, setPromoCode] = useState('');
   const [quote, setQuote] = useState<{ totals: Totals; fingerprint: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -76,9 +76,6 @@ export function CheckoutForm({ user }: { user: { name: string; phone: string | n
   );
   if (!hydrated) return <p className="shop-loading" role="status">Loading your cart…</p>;
   if (!items.length) return <div className="shop-empty"><h2>Your cart is empty.</h2><p>Add an Alpha product to get started.</p><Link className="shop-button" href="/products">Explore products <ArrowRight size={18}/></Link></div>;
-  function field(key: keyof Shipping, label: string, autoComplete?: string, type = 'text') {
-    return <label className={key === 'address' ? 'shop-field shop-field-wide' : 'shop-field'}>{label}<input type={type} required={key !== 'notes' && key !== 'email'} minLength={key === 'phone' ? 7 : key === 'address' ? 5 : 2} maxLength={key === 'address' ? 500 : key === 'phone' ? 30 : key === 'city' ? 100 : 120} autoComplete={autoComplete} value={shipping[key] || ''} onChange={event => setShipping(previous => ({ ...previous, [key]: event.target.value }))}/></label>;
-  }
   return (
     <form onSubmit={submit} className="shop-checkout-layout">
       <fieldset className="shop-checkout-fields" disabled={busy}>
@@ -97,14 +94,44 @@ export function CheckoutForm({ user }: { user: { name: string; phone: string | n
             </div>
           )}
           <div className="shop-form-grid">
-            {field('name', 'Full name', 'shipping name')}
-            {field('phone', 'Phone number', 'shipping tel', 'tel')}
-            {!user && field('email', 'Email address (optional, for receipt)', 'email', 'email')}
-            {field('address', 'Street address, area and landmark', 'shipping street-address')}
-            {field('city', 'City / municipality', 'shipping address-level2')}
-            <label className="shop-field">Country<input value="Nepal" disabled/></label>
-            <label className="shop-field shop-field-wide">Delivery notes <span>(optional)</span>
-              <textarea rows={3} maxLength={1000} placeholder="Anything that helps us find you" value={shipping.notes} onChange={event => setShipping(previous => ({ ...previous, notes: event.target.value }))}/>
+            <label className="shop-field">
+              Full name *
+              <input
+                type="text"
+                required
+                minLength={2}
+                maxLength={120}
+                autoComplete="shipping name"
+                placeholder="Full name of recipient"
+                value={shipping.name}
+                onChange={event => setShipping(previous => ({ ...previous, name: event.target.value }))}
+              />
+            </label>
+            <label className="shop-field">
+              Phone number *
+              <input
+                type="tel"
+                required
+                minLength={7}
+                maxLength={30}
+                autoComplete="shipping tel"
+                placeholder="e.g. 98XXXXXXXX"
+                value={shipping.phone}
+                onChange={event => setShipping(previous => ({ ...previous, phone: event.target.value }))}
+              />
+            </label>
+            <label className="shop-field shop-field-wide">
+              Delivery address *
+              <input
+                type="text"
+                required
+                minLength={3}
+                maxLength={500}
+                autoComplete="shipping street-address"
+                placeholder="Street address, area, city or landmark"
+                value={shipping.address}
+                onChange={event => setShipping(previous => ({ ...previous, address: event.target.value }))}
+              />
             </label>
           </div>
         </div>

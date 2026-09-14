@@ -4,18 +4,25 @@ import { unstable_cache } from 'next/cache';
 import { db, hasDatabase } from './db';
 import { defaultSettings, fallbackContent, fallbackProducts } from './public-data';
 
+async function withFallback<T>(query: () => Promise<unknown>, fallback: T): Promise<T> {
+  if (!hasDatabase()) return fallback;
+  try {
+    return await query() as T;
+  } catch (error) {
+    console.error('[catalog]', error instanceof Error ? error.message : 'Database unavailable');
+    return fallback;
+  }
+}
+
 export const getProducts = unstable_cache(async () => {
-  if (!hasDatabase()) return fallbackProducts;
-  return db.product.findMany({ where: { active: true }, orderBy: [{ featured: 'desc' }, { name: 'asc' }] });
+  return withFallback(() => db.product.findMany({ where: { active: true }, orderBy: [{ featured: 'desc' }, { name: 'asc' }] }), fallbackProducts);
 }, ['products-stock-update'], { revalidate: 120, tags: ['products'] });
 export async function getProductBySlug(slug: string) { return (await getProducts()).find(product => product.slug === slug) ?? null; }
 export const getContent = unstable_cache(async (type?: ContentType) => {
-  if (!hasDatabase()) return fallbackContent.filter(item => !type || item.type === type);
-  return db.content.findMany({ where: { published: true, ...(type ? { type } : {}) }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }] });
+  return withFallback(() => db.content.findMany({ where: { published: true, ...(type ? { type } : {}) }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }] }), fallbackContent.filter(item => !type || item.type === type));
 }, ['content-hero-v4'], { revalidate: 120, tags: ['content'] });
 export const getSettings = unstable_cache(async () => {
-  if (!hasDatabase()) return defaultSettings;
-  const record = await db.setting.findUnique({ where: { key: 'site' } });
+  const record = await withFallback<{ value: unknown } | null>(() => db.setting.findUnique({ where: { key: 'site' } }), null);
   return { ...defaultSettings, ...(record?.value as Partial<typeof defaultSettings> ?? {}) };
 }, ['settings'], { revalidate: 120, tags: ['settings'] });
 
@@ -46,15 +53,13 @@ export const defaultHomeMedia: HomeMediaSettings = {
 };
 
 export const getHomeMedia = unstable_cache(async (): Promise<HomeMediaSettings> => {
-  if (!hasDatabase()) return defaultHomeMedia;
-  const record = await db.setting.findUnique({ where: { key: 'home_media' } });
+  const record = await withFallback<{ value: unknown } | null>(() => db.setting.findUnique({ where: { key: 'home_media' } }), null);
   return { ...defaultHomeMedia, ...(record?.value as Partial<HomeMediaSettings> ?? {}) };
 }, ['home_media'], { revalidate: 120, tags: ['settings', 'home_media'] });
 
 export const getActivePromos = unstable_cache(async () => {
-  if (!hasDatabase()) return [];
   const now = new Date();
-  return db.promo.findMany({
+  return withFallback(() => db.promo.findMany({
     where: {
       active: true,
       OR: [
@@ -70,7 +75,7 @@ export const getActivePromos = unstable_cache(async () => {
       },
     },
     orderBy: { createdAt: 'desc' }
-  });
+  }), []);
 }, ['active-promos'], { revalidate: 60, tags: ['promos'] });
 
 export type FeaturedRider = {
@@ -78,23 +83,20 @@ export type FeaturedRider = {
   name: string;
   image: string | null;
   bio: string | null;
-  promoCode?: string | null;
 };
 
-const fallbackFeaturedRiders: FeaturedRider[] = [
+export const fallbackFeaturedRiders: FeaturedRider[] = [
   {
     id: 'rider-meengma',
     name: 'Meengma #53',
     image: '/images/rider-meengma.jpg',
     bio: 'Power meets the track 🔥🏁 Alpha Rider #53 proudly representing Alpha Lubricants—built to perform when the ride gets tough. 🐺🏍️',
-    promoCode: 'ALPHA-MEENGMA53',
   },
   {
     id: 'rider-ruby',
     name: 'Ruby #07',
     image: '/images/rider-ruby.jpg',
     bio: 'Power meets the track 🔥🏁 Alpha Rider #07 proudly representing Alpha Lubricants on every circuit, in every condition. 🐺🏍️',
-    promoCode: 'ALPHA-RUBY07',
   },
 ];
 
@@ -102,11 +104,10 @@ export const getFeaturedRiders = unstable_cache(async (): Promise<FeaturedRider[
   if (!hasDatabase()) return fallbackFeaturedRiders;
   try {
     const riders = await db.$queryRaw<
-      { id: string; name: string; image: string | null; bio: string | null; promoCode: string | null }[]
+      { id: string; name: string; image: string | null; bio: string | null }[]
     >(Prisma.sql`
-      SELECT u.id, u.name, u.image, u.bio, p.code AS promoCode
+      SELECT u.id, u.name, u.image, u.bio
       FROM \`User\` u
-      LEFT JOIN \`Promo\` p ON p.riderId = u.id AND p.active = 1
       WHERE u.role = 'RIDER' AND u.active = 1
       ORDER BY u.name ASC
       LIMIT 8
@@ -117,14 +118,9 @@ export const getFeaturedRiders = unstable_cache(async (): Promise<FeaturedRider[
       name: r.name,
       image: r.image,
       bio: r.bio,
-      promoCode: r.promoCode || null,
     }));
   } catch (err) {
     console.error('Failed to query featured riders:', err);
     return fallbackFeaturedRiders;
   }
 }, ['featured-riders'], { revalidate: 60, tags: ['riders'] });
-
-
-
-

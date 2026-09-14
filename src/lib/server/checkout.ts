@@ -7,12 +7,12 @@ import { checkoutSchema } from './validation';
 import { ApiError } from './http';
 import { calculateDiscount, calculateShipping } from './pricing';
 
-export async function checkout(userId: string, input: z.infer<typeof checkoutSchema>, quoteOnly = false) {
+export async function checkout(userId: string | null, input: z.infer<typeof checkoutSchema>, quoteOnly = false) {
   const quantities = new Map<string, number>();
   for (const item of input.items) quantities.set(item.productId, (quantities.get(item.productId) ?? 0) + item.quantity);
   if ([...quantities.values()].some(quantity => quantity > 50)) throw new ApiError(400, 'Maximum 50 units per product.');
   return db.$transaction(async tx => {
-    if (!quoteOnly && input.idempotencyKey) {
+    if (!quoteOnly && input.idempotencyKey && userId) {
       await tx.$queryRaw(Prisma.sql`SELECT id FROM User WHERE id = ${userId} FOR UPDATE`);
       const previous = await tx.order.findUnique({ where: { userId_idempotencyKey: { userId, idempotencyKey: input.idempotencyKey } }, include: { items: true } });
       if (previous) return { subtotalPaisa: previous.subtotalPaisa, discountPaisa: previous.discountPaisa, shippingPaisa: previous.shippingPaisa, totalPaisa: previous.totalPaisa, order: previous };
@@ -43,8 +43,27 @@ export async function checkout(userId: string, input: z.infer<typeof checkoutSch
     }
     if (promo) await tx.promo.update({ where: { id: promo.id }, data: { usedCount: { increment: 1 } } });
     const referredById = promo?.rider?.active && promo.rider.role === 'RIDER' ? promo.riderId : null;
-    const order = await tx.order.create({ data: { number: `AL-${Date.now().toString(36).toUpperCase()}-${randomBytes(3).toString('hex').toUpperCase()}`, userId, idempotencyKey: input.idempotencyKey, promoId: promo?.id, promoCode: promo?.code, riderId: referredById, referredById, shipping: input.shipping, ...totals, items: { create: products.map(product => ({ productId: product.id, name: product.name, image: product.image, unitPricePaisa: product.pricePaisa, quantity: quantities.get(product.id)! })) } }, include: { items: true } });
-    await tx.auditLog.create({ data: { actorId: userId, action: 'ORDER_CREATED', entityId: order.id } });
+    const isGuest = !userId;
+    const order = await tx.order.create({
+      data: {
+        number: `AL-${Date.now().toString(36).toUpperCase()}-${randomBytes(3).toString('hex').toUpperCase()}`,
+        userId: userId || null,
+        isGuest,
+        guestName: isGuest ? input.shipping.name : null,
+        guestPhone: isGuest ? input.shipping.phone : null,
+        guestAddress: isGuest ? input.shipping.address : null,
+        idempotencyKey: input.idempotencyKey,
+        promoId: promo?.id,
+        promoCode: promo?.code,
+        riderId: referredById,
+        referredById,
+        shipping: input.shipping,
+        ...totals,
+        items: { create: products.map(product => ({ productId: product.id, name: product.name, image: product.image, unitPricePaisa: product.pricePaisa, quantity: quantities.get(product.id)! })) }
+      },
+      include: { items: true }
+    });
+    await tx.auditLog.create({ data: { actorId: userId || 'GUEST', action: isGuest ? 'GUEST_ORDER_CREATED' : 'ORDER_CREATED', entityId: order.id } });
     return { ...totals, order };
   // MySQL's default REPEATABLE READ could reuse a pre-lock snapshot after waiting
   // on a promo. READ COMMITTED makes the validation observe the locked row's latest usage.

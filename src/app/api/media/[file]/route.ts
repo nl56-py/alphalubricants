@@ -1,12 +1,13 @@
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
 import { ApiError, route } from '@/lib/server/http';
 export const runtime = 'nodejs';
+const uploadDir = () => process.env.UPLOAD_DIR && isAbsolute(process.env.UPLOAD_DIR) ? process.env.UPLOAD_DIR : join(process.cwd(), 'storage', 'uploads');
 export const GET = route(async (request, context) => {
   const { file } = await context.params;
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(webp|mp4|webm)$/.test(file)) throw new ApiError(404, 'Media not found.');
   try {
-    const bytes = await readFile(resolve(process.env.UPLOAD_DIR || './storage/uploads', file));
+    const bytes = await readFile(resolve(uploadDir(), file));
     const headers: Record<string, string> = { 'Content-Type': file.endsWith('.mp4') ? 'video/mp4' : file.endsWith('.webm') ? 'video/webm' : 'image/webp', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff', 'Accept-Ranges': 'bytes' };
     const range = request.headers.get('range');
     if (range) {

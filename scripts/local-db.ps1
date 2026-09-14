@@ -30,8 +30,16 @@ if ($Action -eq 'Status') {
 }
 if ($Action -eq 'Stop') {
   if (Test-LocalDatabase) {
-    & $adminBinary "--defaults-extra-file=$clientPath" shutdown
-    if ($LASTEXITCODE -ne 0) { throw 'Local database shutdown failed.' }
+    & $adminBinary "--defaults-extra-file=$clientPath" shutdown 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      $pidFile = Join-Path $localPath 'mysql.pid'
+      if (Test-Path -LiteralPath $pidFile) {
+        $procId = (Get-Content -LiteralPath $pidFile -Raw).Trim()
+        if ($procId -match '^\d+$') {
+          Stop-Process -Id ([int]$procId) -Force -ErrorAction SilentlyContinue
+        }
+      }
+    }
     Write-Output 'Alpha local MySQL stopped.'
   } else { Write-Output 'Alpha local MySQL is already stopped.' }
   exit 0
@@ -69,6 +77,9 @@ collation-server=utf8mb4_unicode_ci
 "@
   Write-Utf8File $bootstrapPath @"
 ALTER USER 'root'@'localhost' IDENTIFIED BY '$rootPassword';
+CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED BY '$rootPassword';
+ALTER USER 'root'@'127.0.0.1' IDENTIFIED BY '$rootPassword';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION;
 CREATE DATABASE IF NOT EXISTS alpha_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS alpha_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS 'alpha_local'@'127.0.0.1' IDENTIFIED BY '$appPassword';

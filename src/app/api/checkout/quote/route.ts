@@ -9,7 +9,7 @@ export const POST = route(async request => {
   requireDatabase();
   const user = await currentUser();
   await rateLimit(request, 'quote', 100, user?.id);
-  const { order: _order, ...totals } = await checkout(user?.id ?? 'guest', checkoutSchema.parse(await readJson(request)), true);
+  const { order: _order, ...totals } = await checkout(user?.id ?? null, checkoutSchema.parse(await readJson(request)), true);
   return NextResponse.json(totals);
 });
 

@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Check, ChevronLeft, ChevronRight, FileText, ImagePlus, Images, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, FileText, ImagePlus, Images, ListOrdered, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react';
 import { api, dateLabel } from './session';
 import type { Entity } from './types';
 
-const contentTypes = ['HERO', 'BLOG', 'GALLERY', 'VIDEO', 'OFFER', 'REVIEW', 'SOCIAL', 'RIDER_PROFILE'] as const;
+const contentTypes = ['HERO', 'BLOG', 'GALLERY', 'VIDEO', 'OFFER', 'REVIEW', 'SOCIAL'] as const;
 type ContentType = typeof contentTypes[number];
 type HeroTarget = 'desktop' | 'mobile';
 type HeroMedia = 'image' | 'video';
@@ -43,11 +43,10 @@ const fieldsByType: Record<ContentType, Field[]> = {
   OFFER: [...shared, { key: 'image', label: 'Offer artwork', kind: 'image', wide: true }, { key: 'body', label: 'Offer terms and details', kind: 'textarea', wide: true }],
   REVIEW: [...shared, { key: 'rating', label: 'Rating (1–5)', kind: 'number', required: true }, { key: 'image', label: 'Customer photograph', kind: 'image', wide: true }, { key: 'body', label: 'Customer review', kind: 'textarea', required: true, wide: true }],
   SOCIAL: [...shared, { key: 'platform', label: 'Social platform', kind: 'select', options: ['Facebook', 'Instagram', 'YouTube', 'TikTok', 'LinkedIn'] }, { key: 'image', label: 'Post image', kind: 'image', wide: true }, { key: 'body', label: 'Post copy', kind: 'textarea', wide: true }],
-  RIDER_PROFILE: [...shared, { key: 'image', label: 'Rider portrait', kind: 'image', required: true, wide: true }, { key: 'body', label: 'Rider biography', kind: 'textarea', wide: true }],
 };
 
 const typeNames: Record<ContentType, string> = {
-  HERO: 'Hero banner', BLOG: 'Blog article', GALLERY: 'Gallery photo', VIDEO: 'Video', OFFER: 'Offer', REVIEW: 'Customer review', SOCIAL: 'Social post', RIDER_PROFILE: 'Rider profile',
+  HERO: 'Hero banner', BLOG: 'Blog article', GALLERY: 'Gallery photo', VIDEO: 'Video', OFFER: 'Offer', REVIEW: 'Customer review', SOCIAL: 'Social post',
 };
 
 function defaults(type: ContentType, target: HeroTarget, media: HeroMedia) {
@@ -60,6 +59,7 @@ function defaults(type: ContentType, target: HeroTarget, media: HeroMedia) {
 
 export function ContentManager() {
   const [type, setType] = useState<ContentType>('HERO');
+  const [heroMode, setHeroMode] = useState<'manage' | 'order'>('manage');
   const [heroTarget, setHeroTarget] = useState<HeroTarget>('desktop');
   const [heroMedia, setHeroMedia] = useState<HeroMedia>('image');
   const [items, setItems] = useState<Entity[]>([]);
@@ -122,28 +122,204 @@ export function ContentManager() {
       {contentTypes.map(value => <button key={value} className={type === value ? 'active' : ''} onClick={() => selectType(value)}>{typeNames[value]}</button>)}
     </div>
 
-    {type === 'HERO' && <section className="dash-panel dash-hero-manager">
-      <div className="dash-panel-heading"><div><h2>Hero content management</h2><p>Desktop and mobile have independent image and video playlists.</p></div><Images size={22} /></div>
-      <div className="dash-hero-switches">
-        <div className="dash-tabs" aria-label="Hero viewport">{(['desktop', 'mobile'] as const).map(value => <button key={value} className={heroTarget === value ? 'active' : ''} onClick={() => { setHeroTarget(value); setPage(1); }}>{value === 'desktop' ? 'Desktop view' : 'Mobile view'}</button>)}</div>
-        <div className="dash-tabs" aria-label="Hero media type">{(['image', 'video'] as const).map(value => <button key={value} className={heroMedia === value ? 'active' : ''} onClick={() => { setHeroMedia(value); setPage(1); }}>{value === 'image' ? <><Images size={15} /> Images</> : <><Play size={15} /> Videos</>}</button>)}</div>
+    {type === 'HERO' && (
+      <div className="dash-tabs" style={{ marginBottom: '1.25rem' }} aria-label="Hero management mode">
+        <button className={heroMode === 'manage' ? 'active' : ''} onClick={() => setHeroMode('manage')}>
+          <Images size={15} /> Add &amp; Manage Media
+        </button>
+        <button className={heroMode === 'order' ? 'active' : ''} onClick={() => setHeroMode('order')}>
+          <ListOrdered size={15} /> Set Hero Order (Images &amp; Videos)
+        </button>
       </div>
-    </section>}
+    )}
 
-    <section className="dash-panel">
-      <div className="dash-toolbar">
-        <label className="dash-search"><Search size={18} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder={`Search ${typeNames[type].toLowerCase()}...`} /></label>
-        <div className="dash-module-actions"><span className="dash-muted">{total} item{total === 1 ? '' : 's'}</span><button className="dash-button" onClick={() => setCreating(type)}><Plus size={17} />{type === 'HERO' ? `Add ${heroTarget} ${heroMedia}` : `Add ${typeNames[type].toLowerCase()}`}</button></div>
-      </div>
-      {busy ? <div className="dash-empty">Loading content...</div> : items.length ? <div className="dash-content-cards">
-        {items.map(item => <ContentCard key={item.id} item={item} heroTarget={heroTarget} heroMedia={heroMedia} onEdit={() => setEditing(item)} onDelete={() => setDeleting(item)} />)}
-      </div> : <div className="dash-empty"><FileText size={34} /><h3>No matching content.</h3><p>Add the first item for this module.</p><button className="dash-button secondary" onClick={() => setCreating(type)}>Add {typeNames[type].toLowerCase()}</button></div>}
-      <div className="dash-pagination"><span>Page {page} of {pageCount}</span><div><button className="dash-icon-button" aria-label="Previous page" disabled={page === 1 || busy} onClick={() => setPage(value => value - 1)}><ChevronLeft size={18} /></button><button className="dash-icon-button" aria-label="Next page" disabled={page >= pageCount || busy} onClick={() => setPage(value => value + 1)}><ChevronRight size={18} /></button></div></div>
-    </section>
+    {type === 'HERO' && heroMode === 'order' ? (
+      <HeroOrderManager onSaved={() => setVersion(value => value + 1)} />
+    ) : (
+      <>
+        {type === 'HERO' && <section className="dash-panel dash-hero-manager">
+          <div className="dash-panel-heading"><div><h2>Hero content management</h2><p>Desktop and mobile have independent image and video playlists.</p></div><Images size={22} /></div>
+          <div className="dash-hero-switches">
+            <div className="dash-tabs" aria-label="Hero viewport">{(['desktop', 'mobile'] as const).map(value => <button key={value} className={heroTarget === value ? 'active' : ''} onClick={() => { setHeroTarget(value); setPage(1); }}>{value === 'desktop' ? 'Desktop view' : 'Mobile view'}</button>)}</div>
+            <div className="dash-tabs" aria-label="Hero media type">{(['image', 'video'] as const).map(value => <button key={value} className={heroMedia === value ? 'active' : ''} onClick={() => { setHeroMedia(value); setPage(1); }}>{value === 'image' ? <><Images size={15} /> Images</> : <><Play size={15} /> Videos</>}</button>)}</div>
+          </div>
+        </section>}
+
+        <section className="dash-panel">
+          <div className="dash-toolbar">
+            <label className="dash-search"><Search size={18} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder={`Search ${typeNames[type].toLowerCase()}...`} /></label>
+            <div className="dash-module-actions"><span className="dash-muted">{total} item{total === 1 ? '' : 's'}</span><button className="dash-button" onClick={() => setCreating(type)}><Plus size={17} />{type === 'HERO' ? `Add ${heroTarget} ${heroMedia}` : `Add ${typeNames[type].toLowerCase()}`}</button></div>
+          </div>
+          {busy ? <div className="dash-empty">Loading content...</div> : items.length ? <div className="dash-content-cards">
+            {items.map(item => <ContentCard key={item.id} item={item} heroTarget={heroTarget} heroMedia={heroMedia} onEdit={() => setEditing(item)} onDelete={() => setDeleting(item)} />)}
+          </div> : <div className="dash-empty"><FileText size={34} /><h3>No matching content.</h3><p>Add the first item for this module.</p><button className="dash-button secondary" onClick={() => setCreating(type)}>Add {typeNames[type].toLowerCase()}</button></div>}
+          <div className="dash-pagination"><span>Page {page} of {pageCount}</span><div><button className="dash-icon-button" aria-label="Previous page" disabled={page === 1 || busy} onClick={() => setPage(value => value - 1)}><ChevronLeft size={18} /></button><button className="dash-icon-button" aria-label="Next page" disabled={page >= pageCount || busy} onClick={() => setPage(value => value + 1)}><ChevronRight size={18} /></button></div></div>
+        </section>
+      </>
+    )}
 
     {(editing || creating) && <ContentEditor type={(editing?.type as ContentType) || creating!} item={editing} initial={defaults(creating || type, heroTarget, heroMedia)} onClose={() => { setEditing(null); setCreating(null); }} onSaved={() => { setEditing(null); setCreating(null); setNotice('Content saved successfully.'); setVersion(value => value + 1); }} />}
     {deleting && <div className="dash-modal-backdrop"><section className="dash-confirm" role="dialog" aria-modal="true"><h2>Delete this content?</h2><p>This removes it from the website and cannot be undone.</p><div className="dash-modal-actions"><button className="dash-button secondary" onClick={() => setDeleting(null)}>Keep content</button><button className="dash-button" onClick={remove}>Delete content</button></div></section></div>}
   </>;
+}
+
+function HeroOrderManager({ onSaved }: { onSaved: () => void }) {
+  const [items, setItems] = useState<Entity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError('');
+    api<{ items: Entity[] }>('/api/admin/content?type=HERO&pageSize=100')
+      .then(data => {
+        if (active) {
+          const sorted = [...(data.items || [])].sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
+          setItems(sorted);
+        }
+      })
+      .catch(err => {
+        if (active) setError(err.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  function move(index: number, direction: 'up' | 'down') {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+    const next = [...items];
+    const [moved] = next.splice(index, 1);
+    next.splice(targetIndex, 0, moved);
+    setItems(next);
+    setDirty(true);
+    setSuccess('');
+  }
+
+  async function saveOrder() {
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      const payload = {
+        items: items.map((item, index) => ({
+          id: String(item.id),
+          sortOrder: index * 10,
+        })),
+      };
+      await api('/api/admin/content/reorder', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      setDirty(false);
+      setSuccess('Hero media order updated and published successfully!');
+      onSaved();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="dash-panel">
+      <div className="dash-panel-heading">
+        <div>
+          <h2>Hero display order (all media)</h2>
+          <p>Set the sequential display order for all hero images and videos across desktop and mobile. Items at the top appear first.</p>
+        </div>
+        <div className="dash-module-actions">
+          {dirty && <span className="dash-badge active">Unsaved Changes</span>}
+          <button className="dash-button" disabled={saving || !dirty || items.length === 0} onClick={saveOrder}>
+            <Check size={16} /> {saving ? 'Saving...' : 'Save New Order'}
+          </button>
+        </div>
+      </div>
+
+      {error && <p className="dash-error" role="alert">{error}</p>}
+      {success && <p className="dash-success" role="status"><Check size={17} />{success}</p>}
+
+      {loading ? (
+        <div className="dash-empty">Loading hero media...</div>
+      ) : items.length === 0 ? (
+        <div className="dash-empty">
+          <FileText size={34} />
+          <h3>No hero media found.</h3>
+          <p>Add hero images or videos in the "Add &amp; Manage Media" tab first.</p>
+        </div>
+      ) : (
+        <div className="dash-hero-order-list">
+          {items.map((item, index) => {
+            const hasDesktopImg = Boolean(item.image);
+            const hasDesktopVid = Boolean(item.videoUrl);
+            const hasMobileImg = Boolean(item.mobileImage);
+            const hasMobileVid = Boolean(item.mobileVideoUrl);
+            const previewMedia = item.image || item.mobileImage || item.videoUrl || item.mobileVideoUrl;
+            const isVideo = !item.image && !item.mobileImage && (Boolean(item.videoUrl) || Boolean(item.mobileVideoUrl));
+
+            return (
+              <div key={item.id} className="dash-hero-order-item">
+                <div className="dash-hero-order-position">#{index + 1}</div>
+                <div className="dash-hero-order-preview">
+                  {previewMedia ? (
+                    isVideo ? (
+                      <video src={String(previewMedia)} muted preload="metadata" />
+                    ) : (
+                      <img src={String(previewMedia)} alt="" />
+                    )
+                  ) : (
+                    <FileText size={24} />
+                  )}
+                </div>
+                <div className="dash-hero-order-info">
+                  <strong>{String(item.title || 'Untitled Hero Slide')}</strong>
+                  <p>{String(item.excerpt || item.slug || 'No description')}</p>
+                  <div className="dash-hero-order-badges">
+                    {hasDesktopImg && <span className="dash-badge delivered">Desktop Image</span>}
+                    {hasDesktopVid && <span className="dash-badge processing">Desktop Video</span>}
+                    {hasMobileImg && <span className="dash-badge delivered">Mobile Image</span>}
+                    {hasMobileVid && <span className="dash-badge processing">Mobile Video</span>}
+                    <span className={`dash-badge ${item.published ? 'delivered' : 'cancelled'}`}>
+                      {item.published ? 'Published' : 'Draft'}
+                    </span>
+                    <span className="dash-badge info">Sort: {String(item.sortOrder ?? index * 10)}</span>
+                  </div>
+                </div>
+                <div className="dash-hero-order-controls">
+                  <button
+                    type="button"
+                    className="dash-icon-button"
+                    aria-label="Move item up"
+                    disabled={index === 0 || saving}
+                    onClick={() => move(index, 'up')}
+                    title="Move up"
+                  >
+                    <ArrowUp size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="dash-icon-button"
+                    aria-label="Move item down"
+                    disabled={index === items.length - 1 || saving}
+                    onClick={() => move(index, 'down')}
+                    title="Move down"
+                  >
+                    <ArrowDown size={16} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function ContentCard({ item, heroTarget, heroMedia, onEdit, onDelete }: { item: Entity; heroTarget: HeroTarget; heroMedia: HeroMedia; onEdit: () => void; onDelete: () => void }) {

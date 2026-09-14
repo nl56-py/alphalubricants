@@ -112,9 +112,13 @@ model Promo {
 model Order {
   id             String      @id @default(cuid())
   number         String      @unique @db.VarChar(40)
-  userId         String
+  userId         String?
   idempotencyKey String?      @db.VarChar(100)
-  user           User        @relation("CustomerOrders", fields: [userId], references: [id])
+  user           User?       @relation("CustomerOrders", fields: [userId], references: [id])
+  isGuest        Boolean     @default(false)
+  guestName      String?     @db.VarChar(120)
+  guestPhone     String?     @db.VarChar(30)
+  guestAddress   String?     @db.VarChar(500)
   riderId        String?
   rider          User?       @relation("RiderOrders", fields: [riderId], references: [id])
   referredById   String?
@@ -138,6 +142,7 @@ model Order {
   @@index([referredById, createdAt])
   @@index([promoId, createdAt])
   @@index([status, createdAt])
+  @@index([isGuest, createdAt])
 }
 
 model OrderItem {
@@ -223,17 +228,18 @@ model VehicleOil {
 model DealershipEnquiry {
   id             String   @id @default(cuid())
   name           String   @db.VarChar(120)
-  email          String   @db.VarChar(191)
   phone          String   @db.VarChar(30)
   businessName   String   @db.VarChar(180)
+  businessPhone  String?  @db.VarChar(30)
   address        String   @db.VarChar(300)
-  district       String   @db.VarChar(100)
-  dealershipType String   @db.VarChar(60)
-  experience     String   @db.VarChar(100)
-  message        String   @db.Text
-  consent        Boolean
+  email          String?  @db.VarChar(191)
+  district       String?  @db.VarChar(100)
+  dealershipType String?  @db.VarChar(60)
+  experience     String?  @db.VarChar(100)
+  message        String?  @db.Text
+  consent        Boolean  @default(true)
   status         String   @default("NEW") @db.VarChar(30)
-  adminNotes     String   @db.Text
+  adminNotes     String?  @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   @@index([status, createdAt])

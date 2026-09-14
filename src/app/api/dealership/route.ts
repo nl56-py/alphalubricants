@@ -8,7 +8,7 @@ export const POST = route(async request => {
   requireDatabase();
   await rateLimit(request, 'dealership-submit', 20);
   const data = dealershipSchema.parse(await readJson(request));
-  await rateLimit(request, 'dealership-email', 3, data.email);
+  await rateLimit(request, 'dealership-phone', 5, data.phone);
   await db.dealershipEnquiry.create({ data: { ...data, adminNotes: '' } });
   return NextResponse.json({ message: 'Your enquiry has been received. Our team will contact you using the details provided.' }, { status: 201 });
 });

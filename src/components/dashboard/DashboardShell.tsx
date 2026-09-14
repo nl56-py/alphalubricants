@@ -25,8 +25,61 @@ export function DashboardShell({ children, role = "ADMIN" }: { children: ReactNo
   const [open, setOpen] = useState(false);
   const [logoutError, setLogoutError] = useState("");
   if (loading) return <main className="dash-access"><div className="dash-spinner" /><p>Opening your workspace…</p></main>;
-  if (!user) return <main className="dash-access"><ShieldCheck size={42} /><span className="dash-eyebrow">ALPHA WORKSPACE</span><h1>Your business, in focus.</h1><p>Sign in with your {role === "ADMIN" ? "administrator" : "rider"} account to continue.</p>{error && <p className="dash-error" role="alert">{error}</p>}<Link className="dash-button" href={`/account/login?next=${encodeURIComponent(pathname)}`}>Sign in securely <ArrowUpRight size={17} /></Link><Link className="dash-text-link" href="/">Back to the website</Link></main>;
-  if (user.role.toUpperCase() !== role && !(role === "RIDER" && user.role.toUpperCase() === "ADMIN")) return <main className="dash-access"><ShieldCheck size={42} /><h1>This workspace is restricted.</h1><p>Your account does not have access to this area.</p><Link href="/account" className="dash-button">Go to my account</Link></main>;
+  if (!user) {
+    return (
+      <main className="dash-access">
+        <ShieldCheck size={42} />
+        <span className="dash-eyebrow">{role === "ADMIN" ? "ALPHA WORKSPACE" : "ALPHA RIDER WORKSPACE"}</span>
+        <h1>{role === "ADMIN" ? "Your business, in focus." : "Official Rider Workspace."}</h1>
+        <p>
+          {role === "ADMIN"
+            ? "Sign in with your administrator account to manage store operations, orders, and dealership enquiries."
+            : "Sign in with your official Alpha Rider account to track performance, deliveries, and promo referrals."}
+        </p>
+        {error && <p className="dash-error" role="alert">{error}</p>}
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", justifyContent: "center" }}>
+          <Link className="dash-button" href={`/account/login?next=${encodeURIComponent(pathname)}`}>
+            Sign in securely <ArrowUpRight size={17} />
+          </Link>
+          {role === "RIDER" && (
+            <Link className="dash-button secondary" href="/community">
+              View Rider Community
+            </Link>
+          )}
+        </div>
+        <Link className="dash-text-link" href="/" style={{ marginTop: "8px" }}>
+          Back to storefront
+        </Link>
+      </main>
+    );
+  }
+  if (user.role.toUpperCase() !== role && !(role === "RIDER" && user.role.toUpperCase() === "ADMIN")) {
+    return (
+      <main className="dash-access">
+        <ShieldCheck size={42} />
+        <span className="dash-eyebrow">RESTRICTED ACCESS</span>
+        <h1>{role === "RIDER" ? "Rider Workspace Access" : "Administrator Workspace"}</h1>
+        <p>
+          {role === "RIDER"
+            ? "This workspace is reserved for official Alpha Lubricants riders. You are currently signed in as a customer."
+            : "Your account does not have administrator privileges."}
+        </p>
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", justifyContent: "center" }}>
+          <Link href="/account" className="dash-button">
+            Go to my account
+          </Link>
+          {role === "RIDER" && (
+            <Link href="/community" className="dash-button secondary">
+              Meet our Riders
+            </Link>
+          )}
+        </div>
+        <Link className="dash-text-link" href="/" style={{ marginTop: "8px" }}>
+          Back to storefront
+        </Link>
+      </main>
+    );
+  }
   const links = role === "ADMIN" ? adminLinks : [{ href: "/rider", label: "My performance", icon: BarChart3 }, { href: "/rider/orders", label: "Assigned orders", icon: ShoppingBag }];
   async function logout() { try { await api("/api/auth/logout", { method: "POST" }); window.location.href = "/account/login"; } catch (e) { setLogoutError((e as Error).message); } }
   return <div className="dash-layout">

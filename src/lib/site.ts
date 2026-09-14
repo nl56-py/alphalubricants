@@ -1,4 +1,15 @@
 export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://alphalubricant.com';
+export const siteName = 'Alpha Lubricants Nepal';
+export const defaultDescription = 'Shop Alpha motorcycle engine oils and semi synthetic lubricants in Nepal, with oil guidance, rider support and local service from Tinkune, Kathmandu.';
+export const businessPhone = '+9779801226178';
+export const businessEmail = 'info@alphalubricant.com';
+export const businessAddress = {
+  streetAddress: 'Tinkune',
+  addressLocality: 'Kathmandu',
+  addressRegion: 'Bagmati',
+  postalCode: '44600',
+  addressCountry: 'NP'
+};
 export const faqs = [
   {q:'How do I choose the right motorcycle engine oil in Nepal?',a:'Match the SAE viscosity and API or JASO specification in your motorcycle owner’s manual. Consider the manufacturer’s guidance for your temperature range and riding conditions. Contact Alpha with your model and year for help choosing a compatible product.'},
   {q:'What is the difference between synthetic and mineral engine oil?',a:'Synthetic and semi synthetic oils use different base oil formulations from mineral oils. The right choice depends on the engine’s required specification, viscosity and service interval. Always follow the vehicle manufacturer’s recommendation.'},

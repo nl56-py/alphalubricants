@@ -74,6 +74,25 @@ async function seed() {
     },
   ];
 
+  // Prevent double seeding: clean up any duplicate or legacy rider accounts
+  const canonicalEmails = defaultRiders.map((r) => r.email.toLowerCase());
+  const strayRiders = await db.user.findMany({
+    where: {
+      role: 'RIDER',
+      email: { notIn: canonicalEmails },
+    },
+    select: { id: true, email: true, name: true },
+  });
+
+  for (const stray of strayRiders) {
+    await db.promo.deleteMany({ where: { riderId: stray.id } });
+    await db.order.updateMany({ where: { riderId: stray.id }, data: { riderId: null } });
+    await db.order.updateMany({ where: { referredById: stray.id }, data: { referredById: null } });
+    await db.session.deleteMany({ where: { userId: stray.id } });
+    await db.user.delete({ where: { id: stray.id } });
+    console.log(`Cleaned up duplicate/legacy rider: ${stray.email} (${stray.name})`);
+  }
+
   const riderPasswordHash = await bcrypt.hash('AlphaRider2026!', 12);
   for (const rider of defaultRiders) {
     let user = await db.user.findUnique({ where: { email: rider.email } });
@@ -91,10 +110,11 @@ async function seed() {
         },
       });
     } else {
-      await db.user.update({
+      user = await db.user.update({
         where: { id: user.id },
         data: {
           name: rider.name,
+          phone: rider.phone,
           image: rider.image,
           bio: rider.bio,
           role: 'RIDER',
@@ -102,6 +122,15 @@ async function seed() {
         },
       });
     }
+
+    // Ensure no other rider accounts share the same name
+    await db.user.deleteMany({
+      where: {
+        role: 'RIDER',
+        name: rider.name,
+        id: { not: user.id },
+      },
+    });
 
     await db.promo.upsert({
       where: { code: rider.promoCode },

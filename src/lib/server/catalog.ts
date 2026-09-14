@@ -113,14 +113,26 @@ export const getFeaturedRiders = unstable_cache(async (): Promise<FeaturedRider[
       LIMIT 8
     `);
     if (!riders.length) return fallbackFeaturedRiders;
-    return riders.map(r => ({
-      id: r.id,
-      name: r.name,
-      image: r.image,
-      bio: r.bio,
-    }));
+
+    // Deduplicate riders by name to prevent double profiles if multiple accounts exist
+    const seen = new Set<string>();
+    const uniqueRiders: FeaturedRider[] = [];
+    for (const r of riders) {
+      const key = (r.name || '').trim().toLowerCase();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        uniqueRiders.push({
+          id: r.id,
+          name: r.name,
+          image: r.image,
+          bio: r.bio,
+        });
+      }
+    }
+
+    return uniqueRiders.length > 0 ? uniqueRiders : fallbackFeaturedRiders;
   } catch (err) {
     console.error('Failed to query featured riders:', err);
     return fallbackFeaturedRiders;
   }
-}, ['featured-riders'], { revalidate: 60, tags: ['riders'] });
+}, ['featured-riders-v2'], { revalidate: 60, tags: ['riders'] });

@@ -61,11 +61,6 @@ export function SiteChrome({
       </a>
       <header className="site-header">
         <div className="utility">
-          <div className="utility-tagline" aria-label="Performance. Protection. Power.">
-            <span>Performance.</span>
-            <span>Protection.</span>
-            <span>Power.</span>
-          </div>
           <div>
             <Link href="/rider">
               Rider portal <ArrowUpRight size={12} />

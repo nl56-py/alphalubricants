@@ -17,8 +17,13 @@ export function validateOrigin(request: NextRequest) {
   // 1. Direct match with incoming request URL origin (e.g. http://localhost:3000 or production domain)
   if (origin === request.nextUrl.origin) return;
 
-  // 2. Match with configured APP_URL or NEXT_PUBLIC_SITE_URL if specified
-  const allowedUrls = [process.env.APP_URL, process.env.NEXT_PUBLIC_SITE_URL].filter(Boolean) as string[];
+  // 2. Match with configured APP_URL, NEXT_PUBLIC_SITE_URL, or production domains
+  const allowedUrls = [
+    process.env.APP_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    'https://alphalubricant.com',
+    'https://www.alphalubricant.com'
+  ].filter(Boolean) as string[];
   for (const urlStr of allowedUrls) {
     try {
       if (origin === new URL(urlStr).origin) return;
@@ -64,9 +69,17 @@ export function route(handler: (request: NextRequest, context: { params: Promise
     }
   };
 }
+export function getClientIp(request: NextRequest): string {
+  const cfIp = request.headers.get('cf-connecting-ip');
+  if (cfIp) return cfIp.trim();
+  if (process.env.TRUST_PROXY === 'true') {
+    return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  }
+  return 'shared';
+}
+
 export async function rateLimit(request: NextRequest, action: string, limit: number, identifier = '') {
-  // Trust a proxy-supplied address only when explicitly configured by the operator.
-  const ip = process.env.TRUST_PROXY === 'true' ? (request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown') : 'shared';
+  const ip = getClientIp(request);
   const bucket = Math.floor(Date.now() / 900_000);
   const key = createHash('sha256').update(`${action}:${ip}:${identifier}:${bucket}`).digest('hex');
   const record = await db.rateLimit.upsert({ where: { key }, create: { key, expiresAt: new Date((bucket + 1) * 900_000) }, update: { count: { increment: 1 } } });

@@ -21,6 +21,8 @@ export function validateOrigin(request: NextRequest) {
   const allowedUrls = [
     process.env.APP_URL,
     process.env.NEXT_PUBLIC_SITE_URL,
+    'https://alphalubricantsnepal.com',
+    'https://www.alphalubricantsnepal.com',
     'https://alphalubricant.com',
     'https://www.alphalubricant.com'
   ].filter(Boolean) as string[];

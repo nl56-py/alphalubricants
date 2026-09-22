@@ -107,7 +107,9 @@ export async function mutateResource(resource: string, actorId: string, raw: unk
         if (data.type === 'PERCENT' && data.value > 100) throw new ApiError(400, 'Percent discounts cannot exceed 100.');
         if (data.startsAt && data.expiresAt && data.expiresAt <= data.startsAt) throw new ApiError(400, 'Expiry must follow the start date.');
         if (data.riderId && !(await tx.user.findFirst({ where: { id: data.riderId, role: 'RIDER', active: true } }))) throw new ApiError(400, 'Choose an active rider.');
-        item = id ? await tx.promo.update({ where: { id }, data }) : await tx.promo.create({ data });
+        const productIds = Array.isArray(data.productIds) && data.productIds.length > 0 ? data.productIds : null;
+        const promoPayload = { ...data, productIds: productIds as Prisma.InputJsonValue };
+        item = id ? await tx.promo.update({ where: { id }, data: promoPayload }) : await tx.promo.create({ data: promoPayload });
       }
     } else {
       const current = id ? await tx.user.findFirst({ where: { id, role: 'RIDER' }, select: { ...riderSelect, promos: { select: { code: true } } } }) : {};

@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+process.env.TOKIO_WORKER_THREADS = process.env.TOKIO_WORKER_THREADS || '2';
 const port = process.env.PORT || 3000;
 const host = process.env.HOSTNAME || '0.0.0.0';
 

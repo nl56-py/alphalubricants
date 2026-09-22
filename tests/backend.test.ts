@@ -15,6 +15,31 @@ test('inactive, expired, exhausted and minimum-order promos are rejected', () =>
   for (const patch of [{ active: false }, { expiresAt: now }, { startsAt: new Date('2026-10-01') }, { usedCount: 10 }]) assert.throws(() => calculateDiscount(20000, { ...promo, ...patch }, now));
   assert.throws(() => calculateDiscount(9999, promo));
 });
+test('promo codes can be restricted to specific products', () => {
+  const productSpecificPromo: PromoInput = {
+    ...promo,
+    productIds: ['prod-1', 'prod-2']
+  };
+  assert.equal(
+    calculateDiscount(20000, productSpecificPromo, [
+      { productId: 'prod-1', pricePaisa: 10000, quantity: 2 }
+    ]),
+    3000
+  );
+  assert.equal(
+    calculateDiscount(30000, productSpecificPromo, [
+      { productId: 'prod-1', pricePaisa: 10000, quantity: 1 },
+      { productId: 'prod-other', pricePaisa: 20000, quantity: 1 }
+    ]),
+    1500
+  );
+  assert.throws(() =>
+    calculateDiscount(20000, productSpecificPromo, [
+      { productId: 'prod-other', pricePaisa: 20000, quantity: 1 }
+    ])
+  );
+  assert.throws(() => calculateDiscount(20000, productSpecificPromo));
+});
 test('free shipping activates at the exact threshold', () => {
   const settings = { shippingPaisa: 15000, freeShippingAbovePaisa: 300000 };
   assert.equal(calculateShipping(299999, settings), 15000);

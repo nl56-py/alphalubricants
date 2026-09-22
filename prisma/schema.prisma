@@ -101,6 +101,7 @@ model Promo {
   startsAt        DateTime?
   expiresAt       DateTime?
   active          Boolean      @default(true)
+  productIds      Json?
   riderId         String?
   rider           User?        @relation(fields: [riderId], references: [id])
   orders          Order[]

@@ -30,7 +30,8 @@ export async function checkout(userId: string | null, input: z.infer<typeof chec
     const promo = code ? await tx.promo.findUnique({ where: { code }, include: { rider: { select: { active: true, role: true } } } }) : null;
     if (code && !promo) throw new ApiError(400, 'This promo code was not found.');
     let discountPaisa = 0;
-    try { discountPaisa = calculateDiscount(subtotalPaisa, promo); } catch (error) { throw new ApiError(400, (error as Error).message); }
+    const cartItems = products.map(p => ({ productId: p.id, pricePaisa: p.pricePaisa, quantity: quantities.get(p.id)! }));
+    try { discountPaisa = calculateDiscount(subtotalPaisa, promo, cartItems); } catch (error) { throw new ApiError(400, (error as Error).message); }
     const setting = await tx.setting.findUnique({ where: { key: 'site' } });
     const settings = { ...defaultSettings, ...(setting?.value as Partial<typeof defaultSettings> ?? {}) };
     const shippingPaisa = calculateShipping(subtotalPaisa, settings);

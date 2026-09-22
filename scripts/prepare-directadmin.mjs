@@ -56,8 +56,8 @@ console.log('📋 Step 5: Preparing deploy_directadmin folder...');
 fs.cpSync(standaloneDir, deployDir, { recursive: true, dereference: true });
 const copiedEnv = path.join(deployDir, '.env');
 if (fs.existsSync(copiedEnv)) fs.rmSync(copiedEnv, { force: true });
-const copiedNodeModules = path.join(deployDir, 'node_modules');
-if (fs.existsSync(copiedNodeModules)) fs.rmSync(copiedNodeModules, { recursive: true, force: true });
+// Keep copied node_modules from .next/standalone - they contain next, react, @prisma/client, and all runtime deps
+
 
 const deployPackageJsonPath = path.join(deployDir, 'package.json');
 const deployPackageJson = JSON.parse(fs.readFileSync(deployPackageJsonPath, 'utf8'));
@@ -67,6 +67,15 @@ deployPackageJson.dependencies = {
   tsx: deployPackageJson.devDependencies?.tsx ?? '^4.21.0',
 };
 fs.writeFileSync(deployPackageJsonPath, `${JSON.stringify(deployPackageJson, null, 2)}\n`, 'utf8');
+
+// Ensure deploy server.js sets TOKIO_WORKER_THREADS immediately
+const deployServerJsPath = path.join(deployDir, 'server.js');
+if (fs.existsSync(deployServerJsPath)) {
+  const serverContent = fs.readFileSync(deployServerJsPath, 'utf8');
+  if (!serverContent.includes('TOKIO_WORKER_THREADS')) {
+    fs.writeFileSync(deployServerJsPath, `process.env.TOKIO_WORKER_THREADS = process.env.TOKIO_WORKER_THREADS || '2';\n${serverContent}`, 'utf8');
+  }
+}
 
 // Copy Prisma schema and migrations so server-side migration commands have everything they need.
 const prismaDeployDir = path.join(deployDir, 'prisma');
@@ -92,6 +101,7 @@ const envSampleContent = `# DirectAdmin Production Environment Variables
 NODE_ENV=production
 PORT=3000
 HOSTNAME=0.0.0.0
+TOKIO_WORKER_THREADS=2
 
 # MariaDB / MySQL Connection in DirectAdmin
 # Format: mysql://<db_user>:<db_password>@localhost:3306/<db_name>

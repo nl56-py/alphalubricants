@@ -5,6 +5,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
 import { adminGuard } from '@/lib/server/admin';
 import { ApiError, readBytes, route, validateOrigin } from '@/lib/server/http';
+sharp.concurrency(1);
+sharp.cache(false);
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';

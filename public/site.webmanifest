@@ -1,0 +1,27 @@
+{
+  "name": "Alpha Lubricants Nepal",
+  "short_name": "Alpha Lubricants",
+  "description": "Performance. Protection. Power. Premium motorcycle and engine oils in Nepal.",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#801e2b",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "orientation": "portrait"
+}
